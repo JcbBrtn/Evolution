@@ -1,0 +1,10 @@
+***SampleRace Str Dex Con Int Wis Cha ***
+Dwarf 2 0 2 0 1 0
+Elf 0 2 0 1 1 1
+Halfling 0 2 1 0 0 1
+Human 1 1 1 1 1 1
+Dragonborn 2 0 0 0 0 1
+Gnome 0 1 1 2 0 0
+Half-Elf 0 0 0 0 0 2
+Half-Orc 2 0 1 0 0 0
+Tiefling 0 0 0 1 0 2

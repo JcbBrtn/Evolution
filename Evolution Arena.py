@@ -1,23 +1,32 @@
 import random
 #   CLASS : [Attack, Defense, Damage, Health, initative]
-CLASSES = {'barbarian': [1, 1, 1, 1, 1], 'ranger': [2, 0, 2, 0, 1], 'rouge':[3, -1, 3, -1, 3], 'bard':[0, 2, -1, 3, 0], 'wizard': [1, -1, 2, 2, 0]}
+CLASSES = {'barbarian': [1, 1, 1, 1, 1], 'ranger': [2, 0, 2, 0, 1], 'rouge':[3, -3, 3, -3, 3], 'bard':[2, 2, -1, 3, 5], 'wizard': [5, -1, 2, 2, -2]}
 #   RACE : [Move Towards, Move Away, Prepare]
-RACES = {'human': [2,2,2], 'elf':[1,2,1], 'giant':[2,1,2],
-         'dwarf':[1,2,2], 'dragonborn': [2,2,1], 'gnome': [1,1,2],
-         'orc':[2,1,1]}
+RACES = {'human': [10,10,10], 'elf':[1,10,1], 'giant':[10,1,10],
+         'dwarf':[1,10,10], 'dragonborn': [10,10,1], 'gnome': [1,1,10],
+         'orc':[10,1,1]}
 
 FIRST_NAMES = ['Eilaga','Prukain','Krusk','Devis','Jozan','Gimble','Eberk','Vadani','Tordek',
                'Ember','Grog','Percy','Arthur','Alhandra','Soveliss','Lidda','Hennet','Mialee',
                'Ragdar','Dian','Nese','Mae','Valhein','Dol','Earl','Cedria','Azulei','Yun','Cybel',
                'Donnie', 'Parker', 'Motley', 'Edward', 'Brick','Cumulous','Jacob','Bailey','Brock',
                'Caleb','Cathrine','Alexander','Alexandra','Anthony','Blaze','Gordon','Henry','Flexo',
-               'Fry']
+               'Fry', 'Zach', 'Jeff', 'Geoff']
 
 LAST_NAMES = ['Woodsoul','Carter','Licktenstein','Barton','Grimm','Ozul','Arkalis','Armanci','Baldric',
               'Ballard','Bilger','Blackstrand','Brightwater','Carnavon','Coldshore','Coyle','Cresthill',
               'Cuttlescar','Daargen','Drumwind','Dunhall','Fletcher','Fryft','Goldrudder','Lamoth',
               'Van Gandt','Van Hyden','Welfer','Strong', 'Stark', 'Darko', 'Kimera', 'The Short',
-              'Coupled', 'Parker', 'Van Halen', 'Crue', 'Van Helsing']
+              'Coupled', 'Parker', 'Van Halen', 'Crue', 'Van Helsing', 'Cross', 'The Great', 'Lapiz',
+              'Bano','Schnitzel','Erginheimer','Hammer','Sledge','Vendil','Causwell','Jeckle','Hyde',
+              'Copley','Carroll','Balncila','King','Queen','Weaver','Kent','May','April','June','August',
+              'July','Febrary','Septem','Nova','Birlovich','Wesgrovic','Wawrinka','Polit','Cof','Hoffertime',
+              'Hammerdinckle','Picklty','Yomper','Winnenberg','Cruise','Trump','Obama','Gates','Jobs',
+              'Mercury','Venus','Dirt','Flanders','Cruise','Saturn','Mars','Solar','Lunar','Celestial',
+              'Jupiter','Uranas','Neptune','Pluto','Mouse','Kernal','Dink','Schoth','\'Aliah','Mcnaught',
+              'McNeel','McPhereson','Skaggs','Scgoth','Heille','Hominer','Of the Night','The Brave',
+              'The Mildly Brave','of War','of Camelot','of The Round Table',
+              'Olip','Cameniele']
 
 FIGHTER_NUMBER = 50
 
@@ -39,7 +48,7 @@ class Player:
         self.attack = random.randint(-4, 5) + self.add(kind, 0)
         self.defense = random.randint(-4, 5) + self.add(kind, 1)
         self.damage = random.randint(-4, 5) + self.add(kind, 2)
-        self.health = random.randint(25, 32) + self.add(kind, 3)
+        self.health = random.randint(20, 28) + self.add(kind, 3)
         self.maxHealth = self.health
         self.generation = 0
         self.children = 0
@@ -48,6 +57,7 @@ class Player:
             self.health = 1
         self.initative = random.randint(-2, 3) + self.add(kind, 4)
         self.Last_Fight = []
+        self.isComment = True
 
     def reset(self):
         self.isDead = False
@@ -108,18 +118,21 @@ class Player:
         print( toPrint, end = '')
 
     def getMove(self, distance):
-        self.SysOut()
+        if self.isComment:
+            self.SysOut()
         roll = random.random()
         PerArr = self.ConvertToPer()
         if roll < PerArr[0]:
             #Move Towards Opponent
-            print('Dashes towards the enemy!')
+            if self.isComment:
+                print('Dashes towards the enemy!')
             if distance > self.movement:
                 return int(-self.movement)
             else:
                 return -distance
         elif roll < PerArr[0] + PerArr[1]:
-            print('attempts to keep the enemy at range!')
+            if self.isComment:
+                print('attempts to keep the enemy at range!')
             #Move Away From Opponent But Keep Opponent Inside Range
             if self.range > distance: #Move Away
                 if self.movement > self.range - distance:
@@ -134,22 +147,24 @@ class Player:
                     return -(distance - self.range)
         else:
             #Prepare
-            print('prepares for an attack!')
+            if self.isComment:
+                print('prepares for an attack!')
             self.isPrepared = True 
             return 0
 
     def getAttack(self):
-        self.SysOut()
-        if self.kind in ['barbarian', 'knight']:
-            print('swings their greatsword to attack!')
-        elif self.kind in ['rouge']:
-            print('attemps to slice with their dagger!')
-        elif self.kind in ['bard', 'wizard']:
-            print('casts a spell to attack!')
-        elif self.kind in ['ranger']:
-            print('pulls back their bow\'s arrow and releases!')
-        else:
-            print('attempts to attack!')
+        if self.isComment:
+            self.SysOut()
+            if self.kind in ['barbarian', 'knight']:
+                print('swings their greatsword to attack!')
+            elif self.kind in ['rouge']:
+                print('attemps to slice with their dagger!')
+            elif self.kind in ['bard', 'wizard']:
+                print('casts a spell to attack!')
+            elif self.kind in ['ranger']:
+                print('pulls back their bow\'s arrow and releases!')
+            else:
+                print('attempts to attack!')
         return random.randint(1, 20) + self.attack
     
 
@@ -158,14 +173,17 @@ class Player:
 
     def getDamage(self):
         damage = random.randint(1, self.damDie) + self.damage
-        self.SysOut()
-        print('deals ' + str(damage) + ' points of damage!')
+        #if damage < 0:
+        #    damage = 0
+        if self.isComment:
+            self.SysOut()
+            print('deals ' + str(damage) + ' points of damage!')
         return damage
 
     def setHealth(self, damage):
         self.health = self.health - damage
         self.deathCheck()
-        if self.isDead:
+        if self.isDead and self.isComment:
             print('###########################################')
             print(str(self.firstName) + ' ' + str(self.lastName) + ' has Fallen! They are Defeated.')
             print('###########################################')
@@ -298,12 +316,15 @@ def getPlayers(numOfPlayers, arrOfPlay):
         arrOfPlay.append(Player(random.choice(list(CLASSES.keys())), random.choice(list(RACES.keys())),random.choice(list(LAST_NAMES))))
     return arrOfPlay
 
-def Fight(player1, player2):
-    print('\n\n\n$$$$$$$$$$$$$ A NEW FIGHT IS STARTING $$$$$$$$$$$$$')
+def Fight(player1, player2, isComment):
+    player1.isComment = isComment
+    player2.isComment = isComment
     player1.reset()
     player2.reset()
-    player1.toString()
-    player2.toString()
+    if isComment:
+        print('\n\n\n$$$$$$$$$$$$$ A NEW FIGHT IS STARTING $$$$$$$$$$$$$')
+        player1.toString()
+        player2.toString()
     distance = 50
     init1 = player1.getInitative()
     init2 = player2.getInitative()
@@ -321,7 +342,8 @@ def Fight(player1, player2):
         for i in range(len(fightArr)):
             move = fightArr[i].getMove(distance)
             distance = distance + move
-            print('The Fighters are now ' + str(distance) + ' feet away from each other!')
+            if isComment:
+                print('The Fighters are now ' + str(distance) + ' feet away from each other!')
             
             if fightArr[i].range >= distance and fightArr[i].minRange <= distance:
                 attackRoll = fightArr[i].getAttack()
@@ -330,72 +352,103 @@ def Fight(player1, player2):
                     defRoll += 5
                 if attackRoll > defRoll:
                     fightArr[i-1].setHealth(fightArr[i].getDamage())
-                    fightArr[i-1].SysOut()
-                    print('is at ' + str(fightArr[i-1].health) + ' points of Health!')
+                    if isComment:
+                        fightArr[i-1].SysOut()
+                        print('is at ' + str(fightArr[i-1].health) + ' points of Health!')
                     if fightArr[i-1].isDead:
                         fightArr[i].reset()
                         return fightArr[i]
                 elif fightArr[i-1].isPrepared:
-                    fightArr[i-1].SysOut()
-                    print(' blocked and countered the incoming attack by ' + fightArr[i].firstName + ' ' + fightArr[i].lastName + '!')
+                    if isComment:
+                        fightArr[i-1].SysOut()
+                        print(' blocked and countered the incoming attack by ' + fightArr[i].firstName + ' ' + fightArr[i].lastName + '!')
                     attackRoll = fightArr[i-1].getAttack()
                     defRoll = fightArr[i].getDefense()
                     fightArr[i-1].isPrepared = False
                     if attackRoll > defRoll:
                         fightArr[i].setHealth(fightArr[i-1].getDamage())
-                        fightArr[i].SysOut()
-                        
-                        print('is at ' + str(fightArr[i].health) + ' points of Health!')
+                        if isComment:
+                            fightArr[i].SysOut()                        
+                            print('is at ' + str(fightArr[i].health) + ' points of Health!')
                         if fightArr[i].isDead:
                             fightArr[i-1].reset()
                             return fightArr[i-1]
                     else:
-                        print('The counter Attack was Blocked!')
+                        if isComment:
+                            print('The counter Attack was Blocked!')
                 else:
-                    print('The Attack Attempt is Blocked!')
+                    if isComment:
+                        print('The Attack Attempt is Blocked!')
 
             else:
-                fightArr[i].SysOut()
+                if isComment:
+                    fightArr[i].SysOut()
                 if fightArr[i].range < distance:
-                    print('is too far away from his opponent to attack!')
+                    if isComment:
+                        print('is too far away from his opponent to attack!')
                 else:
-                    print('is to close to his opponent to attack!')
-
-            print('It is now ' + fightArr[i-1].firstName + ' ' + fightArr[i-1].lastName + '\'s turn!')
+                    if isComment:
+                        print('is to close to his opponent to attack!')
+            if isComment:
+                print('It is now ' + fightArr[i-1].firstName + ' ' + fightArr[i-1].lastName + '\'s turn!')
             
         counter += 1
     if player1.health < player2.health:
         player2.reset()
-        player1.SysOut()
-        print('falls over from exhaustion')
-        player2.SysOut()
-        print('is victorious!')
+        if isComment:
+            player1.SysOut()
+            print('falls over from exhaustion')
+            player2.SysOut()
+            print('is victorious!')
         return player2
     else:
         player1.reset()
-        player2.SysOut()
-        print('falls over from exhaustion')
-        player1.SysOut()
-        print('is victorious!')
+        if isComment:
+            player2.SysOut()
+            print('falls over from exhaustion')
+            player1.SysOut()
+            print('is victorious!')
         return player1
 
 def main():
     ArrOfPlay = getPlayers(FIGHTER_NUMBER, [])
     while True:
-        inparr = input('What do you want to do?\n-->')
+        inparr = input('\nWhat do you want to do?\n-->')
         inp = inparr.split(' ')
         if inp[0] == 'step':
             try:
                 steps = int(inp[1])
-            ArrOfPlay = evolve(ArrOfPlay, True)
+                for i in range(steps):
+                    j = steps
+                    if (i>j/4-1 and i<j/4+1) or (i>j/2-1 and i<j/2+1) or (i>3*j/4-1 and i<3*j/4+1) or (i <= j and i >= j-1):
+                        print('@', end = ' ')
+                    if inp[2][0].lower() == 't':
+                        ArrOfPlay = evolve(ArrOfPlay, True)
+                    else:
+                        ArrOfPlay = evolve(ArrOfPlay, False)
+                    
+
+            except:
+                ArrOfPlay = evolve(ArrOfPlay, False)
 
         elif inp[0] == 'list':
             listPlayers(ArrOfPlay)
 
+        elif inp[0] == 'new':
+            try:
+                if int(inp[1])%2 == 0:
+                    ArrOfPlay = getPlayers(int(inp[1]), [])
+                    print('New Fighters have joined the arena!')
+            except:
+                print('Make sure to make the number of players wanted an even number!')
+
+        elif inp[0] == 'sample':
+            ArrOfPlay[random.randint(0,len(ArrOfPlay) - 1)].toString()
+
         elif inp[0] == 'help':
             print('Accepted Commands:\n' +
-                  'step,\nlist,\n exit\n')
-        elif inp == 'exit':
+                  'step,\nlist,\nnew,\n exit\n')
+        elif inp[0] == 'exit':
             print('Goodbye')
             break
 
@@ -422,12 +475,14 @@ def evolve(ArrOfPlay, isComment):
     finalArr = []
     fightnum = 0        
     for i in range(0, len(ArrOfPlay) - 1, 2):
-        player = Fight(ArrOfPlay[i], ArrOfPlay[i+1])
+        j = len(ArrOfPlay)
+        player = Fight(ArrOfPlay[i], ArrOfPlay[i+1], isComment)
         newArr.append(player)
         newArr.append(player.mutate())
         fightnum += 1
     newArr = shuffle(list(newArr))
-    print('There were ' + str(fightnum) + ' fights!')
+    if isComment:
+        print('There were ' + str(fightnum) + ' fights!')
     return list(newArr)
 
 def shuffle(Arr):
