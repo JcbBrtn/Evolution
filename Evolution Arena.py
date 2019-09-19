@@ -1,6 +1,6 @@
 import random
 #   CLASS : [Attack, Defense, Damage, Health, initative]
-CLASSES = {'barbarian': [1, 1, 1, 1, 1], 'ranger': [2, 0, 2, 0, 1], 'rouge':[3, -3, 3, -3, 3], 'bard':[2, 2, -1, 3, 5], 'wizard': [5, -1, 2, 2, -2]}
+CLASSES = {'barbarian': [1, -2, 1, 1, 1], 'ranger': [2, 0, 2, 0, 1], 'rouge':[3, -3, 3, -3, 3], 'bard':[2, 2, -1, 3, 5], 'wizard': [5, -1, 2, 2, -2]}
 #   RACE : [Move Towards, Move Away, Prepare]
 RACES = {'human': [10,10,10], 'elf':[1,10,1], 'giant':[10,1,10],
          'dwarf':[1,10,10], 'dragonborn': [10,10,1], 'gnome': [1,1,10],
@@ -39,7 +39,6 @@ class Player:
         self.MoveArr = list(RACES[race])
         self.kind = kind
         self.race = race
-        self.damDie = self.getDamageDie()
         self.range = self.getRange()
         self.minRange = self.getMinRange()
         self.lastName = lastName
@@ -56,7 +55,6 @@ class Player:
         if self.health <= 0:
             self.health = 1
         self.initative = random.randint(-2, 3) + self.add(kind, 4)
-        self.Last_Fight = []
         self.isComment = True
 
     def reset(self):
@@ -77,22 +75,72 @@ class Player:
             return 0
 
     def getAction(self):
-        return
+        PerArr = self.ConvertToPer()
+        Per = random.random()
+        if self.kind in ['barbarian']:
+            if Per < PerArr[0]:
+                return 'rage'
+            elif Per< PerArr[0] + PerArr[1]:
+                return 'attack'
+            else:
+                return 'prepare'
+        elif self.kind in ['rouge']:
+            if Per < PerArr[0]:
+                return 'throat'
+            elif Per< PerArr[0] + PerArr[1]:
+                return 'attack'
+            else:
+                return 'prepare'
+        elif self.kind in ['bard']:
+            if Per < PerArr[0]:
+                return 'inspire'
+            elif Per< PerArr[0] + PerArr[1]:
+                return 'attack'
+            else:
+                return 'prepare'
+
+        elif self.kind in ['wizard']:
+            if Per < PerArr[0]:
+                return 'lightning'
+            elif Per< PerArr[0] + PerArr[1]:
+                return 'attack'
+            else:
+                return 'prepare'
+
+        elif self.kind in ['ranger']:
+            if Per < PerArr[0]:
+                return 'deadshot'
+            elif Per< PerArr[0] + PerArr[1]:
+                return 'attack'
+            else:
+                return 'prepare'
+        else:
+            return 'attack'
 
     def getWeapon(self):
         return
         
 
-    def getDamageDie(self):
-        if self.kind in ['barbarian', 'knight']:
-            return 8
-        elif self.kind in ['rouge']:
-            return 10
-        elif self.kind in ['bard', 'wizard', 'ranger']:
+    def getDamageDie(self, action):
+        if action in ['rage']:
+            if random.randint(1,20) >= 17:
+                return 12
+            else:
+                return 4
+        elif action in ['throat']:
+            if random.randint(1,20) >= 15:
+                return 10
+            else:
+                return 4
+        elif action in ['inspire', 'attack']:
             return 6
+        elif self.kind in ['lighting', 'deadshot']:
+            if random.randint(1,20) >= 17:
+                return 15
+            else:
+                return 6
         else:
-            return 8
-        
+            return 3
 
     def add(self, kind, arr):
         return CLASSES[kind][arr]
@@ -152,7 +200,7 @@ class Player:
             self.isPrepared = True 
             return 0
 
-    def getAttack(self):
+    def getAttack(self, action):
         if self.isComment:
             self.SysOut()
             if self.kind in ['barbarian', 'knight']:
@@ -165,14 +213,17 @@ class Player:
                 print('pulls back their bow\'s arrow and releases!')
             else:
                 print('attempts to attack!')
-        return random.randint(1, 20) + self.attack
+        if action in ['rage', 'inspire']:
+            return random.randint(13, 20) + self.attack
+        else:
+            return random.randint(1, 20) + self.attack
     
 
     def getDefense(self):
         return random.randint(1, 20) + self.defense
 
-    def getDamage(self):
-        damage = random.randint(1, self.damDie) + self.damage
+    def getDamage(self, action):
+        damage = random.randint(1, self.getDamageDie(action)) + self.damage
         #if damage < 0:
         #    damage = 0
         if self.isComment:
@@ -258,28 +309,28 @@ Three Kinds of Mutations can occur
             add, sub = 2, -2
         else:
             add, sub = 1, -1
-        roll = random.randint(1, 5)
+        roll = random.randint(1, 4)
         if roll == 1:
             mutant.attack += add
         elif roll == 2:
             mutant.defense += add
         elif roll == 3:
             mutant.damage += add    
-        elif roll == 4:
-            mutant.initative += add 
+        #elif roll == 4:
+        #    mutant.initative += add 
         else:
             mutant.health += add
             mutant.maxHealth = mutant.health
             
-        roll = random.randint(1, 5)
+        roll = random.randint(1, 4)
         if roll == 1:
             mutant.attack += sub
         elif roll == 2:
             mutant.defense += sub
         elif roll == 3:
             mutant.damage += sub   
-        elif roll == 4:
-            mutant.initative += sub 
+        #elif roll == 4:
+        #    mutant.initative += sub 
         else:
             mutant.health += sub
 
@@ -303,12 +354,12 @@ Three Kinds of Mutations can occur
 
             
         return mutant
-
+#############################################
 """
         End of Player Class
     Now its time for the fun stuff!
 """
-    
+#############################################
 
     
 def getPlayers(numOfPlayers, arrOfPlay):
@@ -346,12 +397,14 @@ def Fight(player1, player2, isComment):
                 print('The Fighters are now ' + str(distance) + ' feet away from each other!')
             
             if fightArr[i].range >= distance and fightArr[i].minRange <= distance:
-                attackRoll = fightArr[i].getAttack()
+                action1 = fightArr[i].getAction()
+                action2 = 'attack'
+                attackRoll = fightArr[i].getAttack(action1)
                 defRoll = fightArr[i-1].getDefense()
                 if fightArr[i-1].isPrepared:
                     defRoll += 5
                 if attackRoll > defRoll:
-                    fightArr[i-1].setHealth(fightArr[i].getDamage())
+                    fightArr[i-1].setHealth(fightArr[i].getDamage(action1))
                     if isComment:
                         fightArr[i-1].SysOut()
                         print('is at ' + str(fightArr[i-1].health) + ' points of Health!')
@@ -362,11 +415,11 @@ def Fight(player1, player2, isComment):
                     if isComment:
                         fightArr[i-1].SysOut()
                         print(' blocked and countered the incoming attack by ' + fightArr[i].firstName + ' ' + fightArr[i].lastName + '!')
-                    attackRoll = fightArr[i-1].getAttack()
+                    attackRoll = fightArr[i-1].getAttack(action2)
                     defRoll = fightArr[i].getDefense()
                     fightArr[i-1].isPrepared = False
                     if attackRoll > defRoll:
-                        fightArr[i].setHealth(fightArr[i-1].getDamage())
+                        fightArr[i].setHealth(fightArr[i-1].getDamage(action2))
                         if isComment:
                             fightArr[i].SysOut()                        
                             print('is at ' + str(fightArr[i].health) + ' points of Health!')
@@ -410,6 +463,67 @@ def Fight(player1, player2, isComment):
             print('is victorious!')
         return player1
 
+def listPlayers(Arr):
+    names = {}
+    for player in Arr:
+        player.SysOut()
+        names.setdefault(player.firstName, player.lastName)
+        print('')
+    print('\nThere are ' + str(len(Arr)) + ' players!\n')
+    while True:
+        inp = input('-->')
+        if inp == 'back' or inp == 'exit':
+            break
+        elif inp in names.keys() or inp in names.values():
+            for player in Arr:
+                if inp == player.firstName or inp == player.lastName:
+                    player.toString()
+                
+def evolve(ArrOfPlay, isComment):
+    newArr = []
+    finalArr = []
+    fightnum = 0        
+    for i in range(0, len(ArrOfPlay) - 1, 2):
+        j = len(ArrOfPlay)
+        player = Fight(ArrOfPlay[i], ArrOfPlay[i+1], isComment)
+        newArr.append(player)
+        newArr.append(player.mutate())
+        fightnum += 1
+    newArr = shuffle(list(newArr))
+    if isComment:
+        print('There were ' + str(fightnum) + ' fights!')
+    return list(newArr)
+
+def shuffle(Arr):
+    newArr = []
+    while Arr:
+        place = random.randint(0, len(Arr) - 1)
+        newArr.append(Arr[place])
+        Arr.remove(Arr[place])
+    return newArr
+
+def EnterTournament(ArrOfPlay):
+    newArr = []
+    if len(ArrOfPlay) <= 3:
+        isComment = True
+    else:
+        isComment = False
+    if len(ArrOfPlay)%2 == 0:
+        start = 0
+    else:
+        start = 1
+    for i in range(start, len(ArrOfPlay) - 1, 2):
+        player = Fight(ArrOfPlay[i], ArrOfPlay[i+1], isComment)
+        newArr.append(player)
+
+    finArr = shuffle(newArr)
+    if len(finArr) == 1:
+        print('\n\nWe Have a Champion!\n')
+        finArr[0].toString()
+        return finArr
+    else:
+        return EnterTournament(finArr)
+
 def main():
     ArrOfPlay = getPlayers(FIGHTER_NUMBER, [])
     while True:
@@ -447,51 +561,13 @@ def main():
 
         elif inp[0] == 'help':
             print('Accepted Commands:\n' +
-                  'step,\nlist,\nnew,\n exit\n')
+                  'step,\nlist,\nnew,\ntournament,\nexit\n')
+        elif inp[0][0:3] == 'tou':
+            ArrOfPlay = EnterTournament(ArrOfPlay)
+            
         elif inp[0] == 'exit':
             print('Goodbye')
             break
-
-def listPlayers(Arr):
-    names = {}
-    for player in Arr:
-        player.SysOut()
-        names.setdefault(player.firstName, player.lastName)
-        print('')
-    while True:
-        inp = input('-->')
-        if inp == 'back' or inp == 'exit':
-            break
-        elif inp in names.keys() or inp in names.values():
-            for player in Arr:
-                if inp == player.firstName or inp == player.lastName:
-                    player.toString()
-                
-            
-        
-
-def evolve(ArrOfPlay, isComment):
-    newArr = []
-    finalArr = []
-    fightnum = 0        
-    for i in range(0, len(ArrOfPlay) - 1, 2):
-        j = len(ArrOfPlay)
-        player = Fight(ArrOfPlay[i], ArrOfPlay[i+1], isComment)
-        newArr.append(player)
-        newArr.append(player.mutate())
-        fightnum += 1
-    newArr = shuffle(list(newArr))
-    if isComment:
-        print('There were ' + str(fightnum) + ' fights!')
-    return list(newArr)
-
-def shuffle(Arr):
-    newArr = []
-    while Arr:
-        place = random.randint(0, len(Arr) - 1)
-        newArr.append(Arr[place])
-        Arr.remove(Arr[place])
-    return newArr
         
     
 main()
