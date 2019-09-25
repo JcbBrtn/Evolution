@@ -1,4 +1,5 @@
 import random
+import SpellList
 #   CLASS : [Attack, Defense, Damage, Health, initative]
 CLASSES = {'barbarian': [1, -2, 1, 1, 1], 'ranger': [2, 0, 2, 0, 1], 'rouge':[3, -3, 3, -3, 3], 'bard':[2, 2, -1, 3, 5], 'wizard': [5, -1, 2, 2, -2]}
 #   RACE : [Move Towards, Move Away, Prepare]
@@ -56,11 +57,16 @@ class Player:
             self.health = 1
         self.initative = random.randint(-2, 3) + self.add(kind, 4)
         self.isComment = True
+        self.isArmored = False
+        self.bonus = 0
+        self.dmgBonus = 0
 
     def reset(self):
         self.isDead = False
         self.isPrepared = False
         self.health = self.maxHealth
+        self.bonus = 0
+        self.dmgBonus = 0
 
 
     def getMinRange(self):
@@ -164,6 +170,9 @@ class Player:
     def SysOut(self):
         toPrint = str(self.firstName) + ' ' + str(self.lastName) + ' '
         print( toPrint, end = '')
+
+    def getMovement(self, distance):
+        return -5
 
     def getMove(self, distance):
         if self.isComment:
@@ -367,6 +376,41 @@ def getPlayers(numOfPlayers, arrOfPlay):
         arrOfPlay.append(Player(random.choice(list(CLASSES.keys())), random.choice(list(RACES.keys())),random.choice(list(LAST_NAMES))))
     return arrOfPlay
 
+def Battle(player1, player2, isComment):
+    #Initalize the fight, create fight sequence
+    player1.isComment = isComment
+    player2.isComment = isComment
+    player1.reset()
+    player2.reset()
+    if isComment:
+        print('\n\n\n$$$$$$$$$$$$$ A NEW FIGHT IS STARTING $$$$$$$$$$$$$')
+        player1.toString()
+        player2.toString()
+    distance = 50
+    init1 = player1.getInitative()
+    init2 = player2.getInitative()
+    fightArr = []
+    if init1 > init2:
+        fightArr.append(player1)
+        fightArr.append(player2)
+    else:
+        fightArr.append(player2)
+        fightArr.append(player1)
+    counter = 0
+
+    #Start the fight!
+    """
+Each Turn consists of Movement, Attack, Bonus action
+Movement is to be determined by a linear equation that has distance and range as its inputs
+Attack will be selected from a statistics block that is gegnerated for each player.
+Bonus actions will be added to a bonus action array and will be used up as they come.
+    """
+
+    while counter < 50:
+        for i in range(len(fightArr)):
+            distance += fightArr[i].getMovement()
+            
+
 def Fight(player1, player2, isComment):
     player1.isComment = isComment
     player2.isComment = isComment
@@ -411,7 +455,7 @@ def Fight(player1, player2, isComment):
                     if fightArr[i-1].isDead:
                         fightArr[i].reset()
                         return fightArr[i]
-                elif fightArr[i-1].isPrepared:
+                elif fightArr[i-1].isPrepared or fightArr[i-1].isArmored:
                     if isComment:
                         fightArr[i-1].SysOut()
                         print(' blocked and countered the incoming attack by ' + fightArr[i].firstName + ' ' + fightArr[i].lastName + '!')
@@ -486,6 +530,7 @@ def evolve(ArrOfPlay, isComment):
     for i in range(0, len(ArrOfPlay) - 1, 2):
         j = len(ArrOfPlay)
         player = Fight(ArrOfPlay[i], ArrOfPlay[i+1], isComment)
+        player.isArmored = False
         newArr.append(player)
         newArr.append(player.mutate())
         fightnum += 1
