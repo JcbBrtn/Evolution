@@ -502,7 +502,67 @@ def shuffle(Arr):
         Arr.remove(Arr[place])
     return newArr
 
+def getStats(ArrOfPlay):
+    """
+    Gets the min, avg, and max of all stats.
+    """
+    totalStatsArr = [0, 0, 0, 0, 0, 0, 0, 0]
+    maxStatsArr = minStatsArr = [ArrOfPlay[0].movement, ArrOfPlay[0].range, ArrOfPlay[0].minRange,
+                           ArrOfPlay[0].attack, ArrOfPlay[0].defense, ArrOfPlay[0].damage,
+                           ArrOfPlay[0].maxHealth, ArrOfPlay[0].initative] 
+    
+    
+    for fighter in ArrOfPlay:
+        fightStats = [fighter.movement, fighter.range, fighter.minRange, fighter.attack,
+                      fighter.defense, fighter.damage, fighter.maxHealth, fighter.initative]
+
+        #Tally for total to get average
+        for i in range(len(fightStats)):
+            totalStatsArr[i] += int(fightStats[i])
+
+        #Check for a min
+        for count, mini in enumerate(minStatsArr):
+            if int(mini) > fightStats[count]:
+                minStatsArr[count] = fightStats[count]
+                
+        #Check for a max
+        for count, maxi in enumerate(maxStatsArr):
+            if int(maxi) < fightStats[count]:
+                maxStatsArr[count] = fightStats[count]
+                
+    print('Minimum Movement: ' + str(minStatsArr[0]) + '\n' +
+          'Minimum Range: ' + str(minStatsArr[1]) + '\n' +
+          'Minimum MinRange: ' + str(minStatsArr[2]) + '\n' +
+          'Minimum Attack: ' + str(minStatsArr[3]) + '\n' +
+          'Minimum Defense: ' + str(minStatsArr[4]) + '\n' +
+          'Minimum Damage: ' + str(minStatsArr[5]) + '\n' +
+          'Minimum Max Health: ' + str(minStatsArr[6]) + '\n' +
+          'Minimum Initative: ' + str(minStatsArr[7]) + '\n')
+    
+    print('Average Movement: ' + str(totalStatsArr[0] / len(ArrOfPlay)) + '\n' +
+          'Average Range: ' + str(totalStatsArr[1] / len(ArrOfPlay)) + '\n' +
+          'Average MinRange: ' + str(totalStatsArr[2] / len(ArrOfPlay)) + '\n' +
+          'Average Attack: ' + str(totalStatsArr[3] / len(ArrOfPlay)) + '\n' +
+          'Average Defense: ' + str(totalStatsArr[4] / len(ArrOfPlay)) + '\n' +
+          'Average Damage: ' + str(totalStatsArr[5] / len(ArrOfPlay)) + '\n' +
+          'Average Max Health: ' + str(totalStatsArr[6] / len(ArrOfPlay)) + '\n' +
+          'Average Initative: ' + str(totalStatsArr[7] / len(ArrOfPlay)) + '\n')
+
+    print('Maximum Movement: ' + str(maxStatsArr[0]) + '\n' +
+          'Maximum Range: ' + str(maxStatsArr[1]) + '\n' +
+          'Maximum MinRange: ' + str(maxStatsArr[2]) + '\n' +
+          'Maximum Attack: ' + str(maxStatsArr[3]) + '\n' +
+          'Maximum Defense: ' + str(maxStatsArr[4]) + '\n' +
+          'Maximum Damage: ' + str(maxStatsArr[5]) + '\n' +
+          'Maximum Max Health: ' + str(maxStatsArr[6]) + '\n' +
+          'Maximum Initative: ' + str(maxStatsArr[7]) + '\n')
+
+    return #End of getStats
+        
+        
+
 def EnterTournament(ArrOfPlay):
+    #Everyone fights eachother until there is one victor. If odd number of people during one round, someone gets a bye.
     newArr = []
     if len(ArrOfPlay) <= 3:
         isComment = True
@@ -548,6 +608,9 @@ def main():
         elif inp[0] == 'list':
             listPlayers(ArrOfPlay)
 
+        elif inp[0] == 'stats':
+            getStats(ArrOfPlay)
+
         elif inp[0] == 'new':
             try:
                 if int(inp[1])%2 == 0:
@@ -561,7 +624,7 @@ def main():
 
         elif inp[0] == 'help':
             print('Accepted Commands:\n' +
-                  'step,\nlist,\nnew,\ntournament,\nexit\n')
+                  'step #,\nlist,\nnew #,\ntournament,\nexit\n')
         elif inp[0][0:3] == 'tou':
             ArrOfPlay = EnterTournament(ArrOfPlay)
             
