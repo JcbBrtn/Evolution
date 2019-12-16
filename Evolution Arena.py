@@ -655,5 +655,6 @@ def main():
             print('Goodbye')
             break
         
-warnings.simplefilter("ignore")   
-main()
+if __name__ == '__main__':        
+    warnings.simplefilter("ignore")   
+    main()
