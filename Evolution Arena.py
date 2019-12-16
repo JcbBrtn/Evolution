@@ -1,5 +1,6 @@
 import random
-import SpellList
+import math
+import NeuralNetwork
 #   CLASS : [Attack, Defense, Damage, Health, initative]
 CLASSES = {'barbarian': [1, -2, 1, 1, 1], 'ranger': [2, 0, 2, 0, 1], 'rouge':[3, -3, 3, -3, 3], 'bard':[2, 2, -1, 3, 5], 'wizard': [5, -1, 2, 2, -2]}
 #   RACE : [Move Towards, Move Away, Prepare]
@@ -37,7 +38,6 @@ class Player:
     def __init__(self, kind, race, lastName):
         self.movement = 25
         self.firstName = random.choice(FIRST_NAMES)
-        self.MoveArr = list(RACES[race])
         self.kind = kind
         self.race = race
         self.range = self.getRange()
@@ -46,27 +46,115 @@ class Player:
         self.isDead = False
         self.isPrepared = False
         self.attack = random.randint(-4, 5) + self.add(kind, 0)
-        self.defense = random.randint(-4, 5) + self.add(kind, 1)
+        self.defense = random.randint(1, 15) + self.add(kind, 1)
         self.damage = random.randint(-4, 5) + self.add(kind, 2)
-        self.health = random.randint(20, 28) + self.add(kind, 3)
+        #self.health = random.randint(20, 28) + self.add(kind, 3)
+        self.health = 3
         self.maxHealth = self.health
         self.generation = 0
         self.children = 0
-        self.weapon = self.getWeapon()
         if self.health <= 0:
             self.health = 1
         self.initative = random.randint(-2, 3) + self.add(kind, 4)
         self.isComment = True
-        self.isArmored = False
-        self.bonus = 0
-        self.dmgBonus = 0
+        self.NN = NeuralNetwork.neuralNetwork(10, 6)
+        self.goesFirst = False
+        self.X = 0
+        self.Y = 0
+        self.Memory = [0,0,0,0,0,0]
+        self.speed = 25
 
+        self.kills = 0
+        self.damageDone = 0
+        self.attacksTried = 0
+        self.attackSuccess = 0
+        self.turnsMoving = 0
+        self.turnsPreparing = 0
+        self.turnsStanding = 0
+        self.actionPenaltyArr = [0,0,0,0,0,0]
+
+    def getAction(self, oppX, oppY):
+        """
+    Get 8 inputs and run them through the neural network, and make Move based on highest output.
+    Inputs are as follows:
+        0)Move in x coord activation
+        1)Move in y Coord activation
+        2)Attempt attack activation
+        3)Prepare activation
+        4)Self X coord
+        5)Self y Coord
+        6)Opponent x Coord
+        7)Opponent y Coord
+    The first 4 inputs are the memory of the previous output
+
+    Outputs are as follows:
+        0)Move in the x Coordinate
+        1)Move in the y Coordinate
+        2)Attempt an attack
+        3)Pepare yourself
+        """
+
+        self.NN.run([self.Memory[0],self.Memory[1],self.Memory[2],self.Memory[3],self.Memory[4], self.Memory[5],self.X, self.Y, oppX, oppY])
+        self.Memory = self.NN.getOutput()
+
+        #Find most activated neuron
+        #Take off 10% for each time an action is used
+        maxWeight = -1000.0
+        maxNum = 0
+        for count, weight in enumerate(self.NN.getOutput()):
+            #Subtract action Penalty from each weight
+            weight -= self.actionPenaltyArr[count]
+            #Check for maxNum
+            if maxWeight<weight:
+                maxNum = count
+
+        #Add penalty to max num
+        self.actionPenaltyArr[maxNum] += .1
+
+        """
+    TODO:
+        Change output to have 6 possible:
+            Move up
+            Move Down
+            Move Left
+            Move Right
+            Attack
+            Prepare
+        And have the activation be the scale factor of which the movement speed is determined by.
+        """
+
+        if maxNum == 0:
+            return 'Up'
+        elif maxNum == 1:
+            return 'Down'
+        elif maxNum == 2:
+            return 'Left'
+        elif maxNum == 3:
+            return 'Right'
+        elif maxNum == 4:
+            return 'Attack'
+        elif maxNum == 5:
+            return 'Prepare'
+        else:
+            return 'Stand there Silly'
+
+    def getMove(self, moveRate, direction):
+        #directon signals left or down
+        if direction:
+            return int(self.speed * -1 * abs(moveRate))
+        else:
+            return int(self.speed * abs(moveRate))
+
+                
     def reset(self):
         self.isDead = False
         self.isPrepared = False
         self.health = self.maxHealth
         self.bonus = 0
         self.dmgBonus = 0
+        self.Memory = [0,0,0,0,0,0]
+        self.goesFirst = False
+        self.actionPenaltyArr = [0,0,0,0,0,0]
 
 
     def getMinRange(self):
@@ -79,53 +167,6 @@ class Player:
             return 10
         else:
             return 0
-
-    def getAction(self):
-        PerArr = self.ConvertToPer()
-        Per = random.random()
-        if self.kind in ['barbarian']:
-            if Per < PerArr[0]:
-                return 'rage'
-            elif Per< PerArr[0] + PerArr[1]:
-                return 'attack'
-            else:
-                return 'prepare'
-        elif self.kind in ['rouge']:
-            if Per < PerArr[0]:
-                return 'throat'
-            elif Per< PerArr[0] + PerArr[1]:
-                return 'attack'
-            else:
-                return 'prepare'
-        elif self.kind in ['bard']:
-            if Per < PerArr[0]:
-                return 'inspire'
-            elif Per< PerArr[0] + PerArr[1]:
-                return 'attack'
-            else:
-                return 'prepare'
-
-        elif self.kind in ['wizard']:
-            if Per < PerArr[0]:
-                return 'lightning'
-            elif Per< PerArr[0] + PerArr[1]:
-                return 'attack'
-            else:
-                return 'prepare'
-
-        elif self.kind in ['ranger']:
-            if Per < PerArr[0]:
-                return 'deadshot'
-            elif Per< PerArr[0] + PerArr[1]:
-                return 'attack'
-            else:
-                return 'prepare'
-        else:
-            return 'attack'
-
-    def getWeapon(self):
-        return
-        
 
     def getDamageDie(self, action):
         if action in ['rage']:
@@ -171,68 +212,49 @@ class Player:
         toPrint = str(self.firstName) + ' ' + str(self.lastName) + ' '
         print( toPrint, end = '')
 
-    def getMovement(self, distance):
-        return -5
-
-    def getMove(self, distance):
-        if self.isComment:
-            self.SysOut()
-        roll = random.random()
-        PerArr = self.ConvertToPer()
-        if roll < PerArr[0]:
-            #Move Towards Opponent
-            if self.isComment:
-                print('Dashes towards the enemy!')
-            if distance > self.movement:
-                return int(-self.movement)
-            else:
-                return -distance
-        elif roll < PerArr[0] + PerArr[1]:
-            if self.isComment:
-                print('attempts to keep the enemy at range!')
-            #Move Away From Opponent But Keep Opponent Inside Range
-            if self.range > distance: #Move Away
-                if self.movement > self.range - distance:
-                    return self.range - distance
-                else:
-                    return self.movement
-
-            else: #Move Forward In Range
-                if distance - self.range > self.movement:
-                    return -self.movement
-                else:
-                    return -(distance - self.range)
-        else:
-            #Prepare
-            if self.isComment:
-                print('prepares for an attack!')
-            self.isPrepared = True 
-            return 0
-
-    def getAttack(self, action):
+    def getAttack(self, oppX, oppY, AC):
+        #Fighter must make 2 requirements to make an attack
+        #The opponent must be within the range and minRange requirement
+        #The attack roll must be greater than the opponents defense
+        self.attacksTried += 1
+        inRange = False
+        hit = False
         if self.isComment:
             self.SysOut()
             if self.kind in ['barbarian', 'knight']:
                 print('swings their greatsword to attack!')
-            elif self.kind in ['rouge']:
-                print('attemps to slice with their dagger!')
-            elif self.kind in ['bard', 'wizard']:
-                print('casts a spell to attack!')
             elif self.kind in ['ranger']:
                 print('pulls back their bow\'s arrow and releases!')
             else:
                 print('attempts to attack!')
-        if action in ['rage', 'inspire']:
-            return random.randint(13, 20) + self.attack
+
+        #First, check for range
+        distance = math.sqrt((self.X - oppX)**2 + (self.Y - oppY)**2)
+        if distance <= self.range and distance >= self.minRange:
+            inRange = True
         else:
-            return random.randint(1, 20) + self.attack
-    
+            inRange = False
+
+        #Next, check for proper roll
+        roll = random.randint(1,20) + self.attack
+        if roll >= AC:
+            hit = True
+        else:
+            hit = False
+
+        if inRange and hit:
+            return True
+        else:
+            return False
+        
 
     def getDefense(self):
-        return random.randint(1, 20) + self.defense
+        return random.randint(5, 20) + self.defense
 
-    def getDamage(self, action):
-        damage = random.randint(1, self.getDamageDie(action)) + self.damage
+    def getDamage(self):
+        damage = random.randint(1, 8) + self.damage
+        self.damageDone += damage
+        self.attackSuccess += 1
         #if damage < 0:
         #    damage = 0
         if self.isComment:
@@ -279,14 +301,21 @@ class Player:
               '\nClass: ' + str(self.kind) +
               '\nRange: ' + str(self.range) +
               '\nMovement: ' + str(self.movement) +
-              '\nMovement Array: ' + str(self.MoveArr) +
               '\nGeneration: ' + str(self.generation) +
-              '\nChildren: ' + str(self.children) )
+              '\nChildren: ' + str(self.children) +
+              '\nKills: ' + str(self.kills) +
+              '\nDamage Done: ' + str(self.damageDone) +
+              '\nTurn Spent Moving: ' + str(self.turnsMoving) +
+              '\nTurns Spent Preparing: ' + str(self.turnsPreparing) +
+              '\nTurns Spent Standing: ' + str(self.turnsStanding) +
+              '\nAttacks Tried: ' + str(self.attacksTried) +
+              '\nAttacks Successful: ' + str(self.attackSuccess))
         print('%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&\n')
 
     def mutate(self):
         """
 Three Kinds of Mutations can occur
+
 
     1) A mutation that effects the Class Feats
             DONE
@@ -304,9 +333,9 @@ Three Kinds of Mutations can occur
         mutant.defense = self.defense
         mutant.health = self.health
         mutant.damage = self.damage
-        mutant.MoveArr = self.MoveArr
         mutant.initative = self.initative
         mutant.movement = self.movement
+        mutant.NN = self.NN.mutate()
         
         roll = random.randint(0,100)
         mutant.getNewName()
@@ -325,8 +354,8 @@ Three Kinds of Mutations can occur
             mutant.defense += add
         elif roll == 3:
             mutant.damage += add    
-        #elif roll == 4:
-        #    mutant.initative += add 
+        elif roll == 4:
+            mutant.initative += add 
         else:
             mutant.health += add
             mutant.maxHealth = mutant.health
@@ -338,14 +367,10 @@ Three Kinds of Mutations can occur
             mutant.defense += sub
         elif roll == 3:
             mutant.damage += sub   
-        #elif roll == 4:
-        #    mutant.initative += sub 
+        elif roll == 4:
+            mutant.initative += sub 
         else:
             mutant.health += sub
-
-        roll = random.randint(0, 2)
-        add = random.randint(0,4)
-        mutant.MoveArr[roll] += add
 
         roll = random.randint(1,2)
         add = random.randint(0, 6)
@@ -376,8 +401,10 @@ def getPlayers(numOfPlayers, arrOfPlay):
         arrOfPlay.append(Player(random.choice(list(CLASSES.keys())), random.choice(list(RACES.keys())),random.choice(list(LAST_NAMES))))
     return arrOfPlay
 
+
 def Battle(player1, player2, isComment):
-    #Initalize the fight, create fight sequence
+    #Battle is same as fight command, just refactored to be cleaner, and adds the Neural Network
+    #Runs through the figth array of 2 players and Has them fight till timer runs out or someone dies.
     player1.isComment = isComment
     player2.isComment = isComment
     player1.reset()
@@ -386,109 +413,77 @@ def Battle(player1, player2, isComment):
         print('\n\n\n$$$$$$$$$$$$$ A NEW FIGHT IS STARTING $$$$$$$$$$$$$')
         player1.toString()
         player2.toString()
-    distance = 50
     init1 = player1.getInitative()
     init2 = player2.getInitative()
     fightArr = []
     if init1 > init2:
+        player1.goesFirst = True
         fightArr.append(player1)
         fightArr.append(player2)
+        player1.X = -25
+        player1.Y = 0
+        player2.X = 25
+        player2.Y = 0
     else:
+        player2.goesFirst = True
         fightArr.append(player2)
         fightArr.append(player1)
-    counter = 0
-
-    #Start the fight!
-    """
-Each Turn consists of Movement, Attack, Bonus action
-Movement is to be determined by a linear equation that has distance and range as its inputs
-Attack will be selected from a statistics block that is gegnerated for each player.
-Bonus actions will be added to a bonus action array and will be used up as they come.
-    """
-
-    while counter < 50:
-        for i in range(len(fightArr)):
-            distance += fightArr[i].getMovement()
-            
-
-def Fight(player1, player2, isComment):
-    player1.isComment = isComment
-    player2.isComment = isComment
-    player1.reset()
-    player2.reset()
-    if isComment:
-        print('\n\n\n$$$$$$$$$$$$$ A NEW FIGHT IS STARTING $$$$$$$$$$$$$')
-        player1.toString()
-        player2.toString()
-    distance = 50
-    init1 = player1.getInitative()
-    init2 = player2.getInitative()
-    fightArr = []
-    if init1 > init2:
-        fightArr.append(player1)
-        fightArr.append(player2)
-    else:
-        fightArr.append(player2)
-        fightArr.append(player1)
+        player2.X = -25
+        player2.Y = 0
+        player1.X = 25
+        player1.Y = 0
     counter = 0
     
 
-    while counter < 50:
+    while counter < 500:
         for i in range(len(fightArr)):
-            move = fightArr[i].getMove(distance)
-            distance = distance + move
-            if isComment:
-                print('The Fighters are now ' + str(distance) + ' feet away from each other!')
-            
-            if fightArr[i].range >= distance and fightArr[i].minRange <= distance:
-                action1 = fightArr[i].getAction()
-                action2 = 'attack'
-                attackRoll = fightArr[i].getAttack(action1)
-                defRoll = fightArr[i-1].getDefense()
-                if fightArr[i-1].isPrepared:
-                    defRoll += 5
-                if attackRoll > defRoll:
-                    fightArr[i-1].setHealth(fightArr[i].getDamage(action1))
-                    if isComment:
-                        fightArr[i-1].SysOut()
-                        print('is at ' + str(fightArr[i-1].health) + ' points of Health!')
-                    if fightArr[i-1].isDead:
-                        fightArr[i].reset()
-                        return fightArr[i]
-                elif fightArr[i-1].isPrepared or fightArr[i-1].isArmored:
-                    if isComment:
-                        fightArr[i-1].SysOut()
-                        print(' blocked and countered the incoming attack by ' + fightArr[i].firstName + ' ' + fightArr[i].lastName + '!')
-                    attackRoll = fightArr[i-1].getAttack(action2)
-                    defRoll = fightArr[i].getDefense()
+            action = fightArr[i].getAction(fightArr[i-1].X, fightArr[i-1].Y)
+            if action == 'Up':
+                fightArr[i].turnsMoving += 1
+                fightArr[i].Y += fightArr[i].getMove(fightArr[i].NN.weights[3][0], False)
+            elif action =='Down':
+                fightArr[i].turnsMoving += 1
+                fightArr[i].Y += fightArr[i].getMove(fightArr[i].NN.weights[3][1], True)
+            elif action =='Left':
+                fightArr[i].turnsMoving += 1
+                fightArr[i].X += fightArr[i].getMove(fightArr[i].NN.weights[3][2], True)
+            elif action =='Right':
+                fightArr[i].turnsMoving += 1
+                fightArr[i].X +=fightArr[i].getMove(fightArr[i].NN.weights[3][3], False)
+                
+            elif action =='Attack':
+                fightArr[i].attacksTried += 1
+                if fightArr[i].getAttack(fightArr[i-1].X, fightArr[i-1].Y, fightArr[i-1].defense):
+                    fightArr[i-1].setHealth(fightArr[i].getDamage())
+                    if player1.isDead:
+                        player2.kills += 1
+                        player2.reset()
+                        return player2
+                    elif player2.isDead:
+                        player1.kills += 1
+                        player1.reset()
+                        return player1
+                else:
+                    if fightArr[i-1].isPrepared and fightArr[i-1].getAttack(fightArr[i].X, fightArr[i].Y, fightArr[i].defense):
+                        fightArr[i].setHealth(fightArr[i-1].getDamage())
+                        if player1.isDead:
+                            player2.kills += 1
+                            player2.reset()
+                            return player2
+                        elif player2.isDead:
+                            player1.kills += 1
+                            player1.reset()
+                            return player1
                     fightArr[i-1].isPrepared = False
-                    if attackRoll > defRoll:
-                        fightArr[i].setHealth(fightArr[i-1].getDamage(action2))
-                        if isComment:
-                            fightArr[i].SysOut()                        
-                            print('is at ' + str(fightArr[i].health) + ' points of Health!')
-                        if fightArr[i].isDead:
-                            fightArr[i-1].reset()
-                            return fightArr[i-1]
-                    else:
-                        if isComment:
-                            print('The counter Attack was Blocked!')
-                else:
-                    if isComment:
-                        print('The Attack Attempt is Blocked!')
-
+                    
+            elif action =='Prepare':
+                fightArr[i].isPrepared = True
+                fightArr[i].turnsPreparing += 1
             else:
+                print('uh oh')
+                fightArr[i].turnsStanding += 1
                 if isComment:
-                    fightArr[i].SysOut()
-                if fightArr[i].range < distance:
-                    if isComment:
-                        print('is too far away from his opponent to attack!')
-                else:
-                    if isComment:
-                        print('is to close to his opponent to attack!')
-            if isComment:
-                print('It is now ' + fightArr[i-1].firstName + ' ' + fightArr[i-1].lastName + '\'s turn!')
-            
+                    print('They just stand there silly.')
         counter += 1
     if player1.health < player2.health:
         player2.reset()
@@ -506,7 +501,8 @@ def Fight(player1, player2, isComment):
             player1.SysOut()
             print('is victorious!')
         return player1
-
+            
+            
 def listPlayers(Arr):
     names = {}
     for player in Arr:
@@ -529,8 +525,7 @@ def evolve(ArrOfPlay, isComment):
     fightnum = 0        
     for i in range(0, len(ArrOfPlay) - 1, 2):
         j = len(ArrOfPlay)
-        player = Fight(ArrOfPlay[i], ArrOfPlay[i+1], isComment)
-        player.isArmored = False
+        player = Battle(ArrOfPlay[i], ArrOfPlay[i+1], isComment)
         newArr.append(player)
         newArr.append(player.mutate())
         fightnum += 1
@@ -555,7 +550,6 @@ def getStats(ArrOfPlay):
     maxStatsArr = minStatsArr = [ArrOfPlay[0].movement, ArrOfPlay[0].range, ArrOfPlay[0].minRange,
                            ArrOfPlay[0].attack, ArrOfPlay[0].defense, ArrOfPlay[0].damage,
                            ArrOfPlay[0].maxHealth, ArrOfPlay[0].initative] 
-    
     
     for fighter in ArrOfPlay:
         fightStats = [fighter.movement, fighter.range, fighter.minRange, fighter.attack,
@@ -618,7 +612,7 @@ def EnterTournament(ArrOfPlay):
     else:
         start = 1
     for i in range(start, len(ArrOfPlay) - 1, 2):
-        player = Fight(ArrOfPlay[i], ArrOfPlay[i+1], isComment)
+        player = Battle(ArrOfPlay[i], ArrOfPlay[i+1], isComment)
         newArr.append(player)
 
     finArr = shuffle(newArr)
@@ -639,7 +633,7 @@ def main():
                 steps = int(inp[1])
                 for i in range(steps):
                     j = steps
-                    if (i>j/4-1 and i<j/4+1) or (i>j/2-1 and i<j/2+1) or (i>3*j/4-1 and i<3*j/4+1) or (i <= j and i >= j-1):
+                    if (i>j/4-1 and i<j/4) or (i>j/2-1 and i<j/2) or (i>3*j/4-1 and i<3*j/4) or (i <= j and i >= j-1):
                         print('@', end = ' ')
                     if inp[2][0].lower() == 't':
                         ArrOfPlay = evolve(ArrOfPlay, True)
