@@ -4,6 +4,9 @@ The actions for each fighter's turn is determined by a self made Neural Network.
 For each round, the ones who live move on to reproduce and repopulate the population.
 Each child is mutated slightly to attempt to optimize the Neural network to create the ultimate fighter.
 
+The mutation of children mutates the stats and the neural network.
+When fighting, each action has a penalty marked against it when used. Decreasing the value of the weight of the output. This means that fighters should not get stuck in a pattern of repeating action. Instead they will exprole new options until they feel that they can return to their desired action.
+
 The UI is mainly test based. Use 'help' to get a list of all commands that can be done. The commands are:
 
   'help' get a list of accepted commands.
