@@ -1,6 +1,7 @@
 import random
 import math
 import NeuralNetwork
+import warnings
 #   CLASS : [Attack, Defense, Damage, Health, initative]
 CLASSES = {'barbarian': [1, -2, 1, 1, 1], 'ranger': [2, 0, 2, 0, 1], 'rouge':[3, -3, 3, -3, 3], 'bard':[2, 2, -1, 3, 5], 'wizard': [5, -1, 2, 2, -2]}
 #   RACE : [Move Towards, Move Away, Prepare]
@@ -103,10 +104,12 @@ class Player:
         maxNum = 0
         for count, weight in enumerate(self.NN.getOutput()):
             #Subtract action Penalty from each weight
-            weight -= self.actionPenaltyArr[count]
+            weight += -1 * self.actionPenaltyArr[count]
+
             #Check for maxNum
-            if maxWeight<weight:
+            if maxWeight < weight:
                 maxNum = count
+                maxWeight = weight
 
         #Add penalty to max num
         self.actionPenaltyArr[maxNum] += .1
@@ -139,6 +142,7 @@ class Player:
             return 'Stand there Silly'
 
     def getMove(self, moveRate, direction):
+        #The move speed, or total movement is relative to the weight that was outputed by the Neural Network
         #directon signals left or down
         if direction:
             return int(self.speed * -1 * abs(moveRate))
@@ -147,6 +151,7 @@ class Player:
 
                 
     def reset(self):
+        #Resets the Fighters between rounds
         self.isDead = False
         self.isPrepared = False
         self.health = self.maxHealth
@@ -167,27 +172,6 @@ class Player:
             return 10
         else:
             return 0
-
-    def getDamageDie(self, action):
-        if action in ['rage']:
-            if random.randint(1,20) >= 17:
-                return 12
-            else:
-                return 4
-        elif action in ['throat']:
-            if random.randint(1,20) >= 15:
-                return 10
-            else:
-                return 4
-        elif action in ['inspire', 'attack']:
-            return 6
-        elif self.kind in ['lighting', 'deadshot']:
-            if random.randint(1,20) >= 17:
-                return 15
-            else:
-                return 6
-        else:
-            return 3
 
     def add(self, kind, arr):
         return CLASSES[kind][arr]
@@ -435,7 +419,7 @@ def Battle(player1, player2, isComment):
     counter = 0
     
 
-    while counter < 500:
+    while counter < 200:
         for i in range(len(fightArr)):
             action = fightArr[i].getAction(fightArr[i-1].X, fightArr[i-1].Y)
             if action == 'Up':
@@ -633,7 +617,7 @@ def main():
                 steps = int(inp[1])
                 for i in range(steps):
                     j = steps
-                    if (i>j/4-1 and i<j/4) or (i>j/2-1 and i<j/2) or (i>3*j/4-1 and i<3*j/4) or (i <= j and i >= j-1):
+                    if (i>j/4-1 and i<j/4) or (i>j/2-1 and i<j/2) or (i>3*j/4-1 and i<3*j/4) or (i == j-1):
                         print('@', end = ' ')
                     if inp[2][0].lower() == 't':
                         ArrOfPlay = evolve(ArrOfPlay, True)
@@ -671,5 +655,5 @@ def main():
             print('Goodbye')
             break
         
-    
+warnings.simplefilter("ignore")   
 main()

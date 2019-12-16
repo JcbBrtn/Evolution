@@ -1,5 +1,6 @@
 import random
 import math
+import numpy as np
 
 """
 Neural network class:
@@ -72,7 +73,7 @@ class neuralNetwork:
             self.weights.append(weight)
             
     def sigmoid(self, x):
-        return round((1/(1+ math.exp(-1*round(x,4)))), 4)
+        return round((1/(1+ np.exp(-1*x))), 4)
 
     def getOutput(self):
         return self.weights[3]
