@@ -419,7 +419,7 @@ def Battle(player1, player2, isComment):
     counter = 0
     
 
-    while counter < 200:
+    while counter < 300:
         for i in range(len(fightArr)):
             action = fightArr[i].getAction(fightArr[i-1].X, fightArr[i-1].Y)
             if action == 'Up':
@@ -469,22 +469,11 @@ def Battle(player1, player2, isComment):
                 if isComment:
                     print('They just stand there silly.')
         counter += 1
-    if player1.health < player2.health:
-        player2.reset()
-        if isComment:
-            player1.SysOut()
-            print('falls over from exhaustion')
-            player2.SysOut()
-            print('is victorious!')
-        return player2
-    else:
-        player1.reset()
-        if isComment:
-            player2.SysOut()
-            print('falls over from exhaustion')
-            player1.SysOut()
-            print('is victorious!')
-        return player1
+        #End of While Loop
+        
+    #If neither player can kill the other, scrap both players and return a different player.
+    newPlayer = (Player(random.choice(list(CLASSES.keys())), random.choice(list(RACES.keys())),random.choice(list(LAST_NAMES))))
+    return newPlayer
             
             
 def listPlayers(Arr):
@@ -617,8 +606,10 @@ def main():
                 steps = int(inp[1])
                 for i in range(steps):
                     j = steps
-                    if (i>j/4-1 and i<j/4) or (i>j/2-1 and i<j/2) or (i>3*j/4-1 and i<3*j/4) or (i == j-1):
+                    if (i>(24 * j/100) and i<(j * 26 / 100)) or ((i>(j * 74/100)) and (i< j * 76 / 100)):
                         print('@', end = ' ')
+                    elif ((i> j * 49 / 100) and (i<j * 51 / 100)) or (i> j * 98 / 100):
+                        print('#', end = ' ')
                     if inp[2][0].lower() == 't':
                         ArrOfPlay = evolve(ArrOfPlay, True)
                     else:
