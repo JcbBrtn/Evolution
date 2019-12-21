@@ -33,6 +33,8 @@ LAST_NAMES = ['Woodsoul','Carter','Licktenstein','Barton','Grimm','Ozul','Arkali
 
 FIGHTER_NUMBER = 50
 
+GENERATION_NUMBER = 0
+
 
 class Player:
 
@@ -52,13 +54,13 @@ class Player:
         #self.health = random.randint(20, 28) + self.add(kind, 3)
         self.health = 3
         self.maxHealth = self.health
-        self.generation = 0
-        self.children = 0
+        self.generation = GENERATION_NUMBER
+        self.children = []
         if self.health <= 0:
             self.health = 1
         self.initative = random.randint(-2, 3) + self.add(kind, 4)
         self.isComment = True
-        self.NN = NeuralNetwork.neuralNetwork(10, 6)
+        self.NN = NeuralNetwork.neuralNetwork(7, 6)
         self.goesFirst = False
         self.X = 0
         self.Y = 0
@@ -73,6 +75,7 @@ class Player:
         self.turnsPreparing = 0
         self.turnsStanding = 0
         self.actionPenaltyArr = [0,0,0,0,0,0]
+        self.father = self
 
     def getAction(self, oppX, oppY):
         """
@@ -95,7 +98,11 @@ class Player:
         3)Pepare yourself
         """
 
-        self.NN.run([self.Memory[0],self.Memory[1],self.Memory[2],self.Memory[3],self.Memory[4], self.Memory[5],self.X, self.Y, oppX, oppY])
+        if self.isPrepared:
+            prep = 1
+        else:
+            prep = 0
+        self.NN.run([prep ,self.X, self.Y, oppX, oppY, self.range, self.minRange])
         self.Memory = self.NN.getOutput()
 
         #Find most activated neuron
@@ -174,8 +181,10 @@ class Player:
             return 0
 
     def add(self, kind, arr):
-        return CLASSES[kind][arr]
-
+        try:
+            return CLASSES[kind][arr]
+        except:
+            return 0
     def TurnReset(self):
         isPrepared = False
 
@@ -276,6 +285,9 @@ class Player:
     def toString(self):
         print('%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&%&')
         self.SysOut()
+        children = []
+        for child in self.children:
+            children.append(child.firstName)
         print('\nAttack: ' + str(self.attack) +
               '\nDamage: ' + str(self.damage) +
               '\nDefense: ' + str(self.defense) +
@@ -286,7 +298,7 @@ class Player:
               '\nRange: ' + str(self.range) +
               '\nMovement: ' + str(self.movement) +
               '\nGeneration: ' + str(self.generation) +
-              '\nChildren: ' + str(self.children) +
+              '\nChildren: ' + str(children) +
               '\nKills: ' + str(self.kills) +
               '\nDamage Done: ' + str(self.damageDone) +
               '\nTurn Spent Moving: ' + str(self.turnsMoving) +
@@ -311,9 +323,8 @@ Three Kinds of Mutations can occur
             DONE
         """
         mutant = Player(self.kind, self.race, self.lastName)
-        self.children += 1
         mutant.attack = self.attack
-        mutant.generation = self.generation + 1
+        mutant.generation = GENERATION_NUMBER
         mutant.defense = self.defense
         mutant.health = self.health
         mutant.damage = self.damage
@@ -370,7 +381,9 @@ Three Kinds of Mutations can occur
             add = add * -1
             mutant.movement += add
 
-            
+        mutant.father = self
+        self.children.append(mutant)
+        
         return mutant
 #############################################
 """
@@ -470,8 +483,16 @@ def Battle(player1, player2, isComment):
                     print('They just stand there silly.')
         counter += 1
         #End of While Loop
+
+    
+    #If neither player can kill the other, scrap both players and return a new child of the father of this fighter.
+    #If neither fighter has a father then return a brand new fighter
+    for fighter in fightArr:
+        if fighter.father != fighter:
+            return fighter.father.mutate()
+        else:
+            continue
         
-    #If neither player can kill the other, scrap both players and return a different player.
     newPlayer = (Player(random.choice(list(CLASSES.keys())), random.choice(list(RACES.keys())),random.choice(list(LAST_NAMES))))
     return newPlayer
             
@@ -483,14 +504,6 @@ def listPlayers(Arr):
         names.setdefault(player.firstName, player.lastName)
         print('')
     print('\nThere are ' + str(len(Arr)) + ' players!\n')
-    while True:
-        inp = input('-->')
-        if inp == 'back' or inp == 'exit':
-            break
-        elif inp in names.keys() or inp in names.values():
-            for player in Arr:
-                if inp == player.firstName or inp == player.lastName:
-                    player.toString()
                 
 def evolve(ArrOfPlay, isComment):
     newArr = []
@@ -596,28 +609,63 @@ def EnterTournament(ArrOfPlay):
     else:
         return EnterTournament(finArr)
 
+def createPlayer():
+    try:
+        print('Enter the following information for your fighter?')
+        lastName = input('\nLast Name? -->')
+        firstName = input('\nFirst Name? -->')
+        race = input('\nRace? -->')
+        kind = input('\nClass? -->')
+        player = Player(kind, race, lastName)
+        player.firstName = firstName
+        player.range = int(input('\nMax Range? -->'))
+        player.minRange = int(input('\nMin Range? -->'))
+        player.attack = int(input('\nAttack Bonus? -->'))
+        player.defense = int(input('\nDefense? -->'))
+        player.damage = int(input('\nDamage Bonus? -->'))
+        player.health = int(input('\nMax Health? -->'))
+        player.speed = int(input('\nMax Move Distance? -->'))
+        return player
+    except:
+        print('Error entering player info. A random Player has been made to enter the Arena.')
+        return Player(random.choice(list(CLASSES.keys())), random.choice(list(RACES.keys())),random.choice(list(LAST_NAMES)))
+
+    
 def main():
+    global GENERATION_NUMBER
     ArrOfPlay = getPlayers(FIGHTER_NUMBER, [])
+    names = {}
+    isComment = False
+    for player in ArrOfPlay:
+        names.setdefault(player.firstName, player.lastName)
     while True:
         inparr = input('\nWhat do you want to do?\n-->')
         inp = inparr.split(' ')
         if inp[0] == 'step':
-            try:
-                steps = int(inp[1])
-                for i in range(steps):
-                    j = steps
-                    if (i>(24 * j/100) and i<(j * 26 / 100)) or ((i>(j * 74/100)) and (i< j * 76 / 100)):
-                        print('@', end = ' ')
-                    elif ((i> j * 49 / 100) and (i<j * 51 / 100)) or (i> j * 98 / 100):
-                        print('#', end = ' ')
-                    if inp[2][0].lower() == 't':
-                        ArrOfPlay = evolve(ArrOfPlay, True)
-                    else:
-                        ArrOfPlay = evolve(ArrOfPlay, False)
-                    
-
-            except:
-                ArrOfPlay = evolve(ArrOfPlay, False)
+            if len(ArrOfPlay)%2 == 0:
+                try:
+                    steps = int(inp[1])
+                    try:
+                        if inp[2][0].lower() == 't':
+                            isComment = True
+                        else:
+                            isComment = False
+                    except:
+                        isComment = isComment
+                    for i in range(steps):
+                        GENERATION_NUMBER += 1
+                        j = steps
+                        if (i==int(j/4) or i == int(j*3 / 4)):
+                            print('@', end = ' ')
+                        elif (i== int(j/2)) or (i == j - 2):
+                            print('#', end = ' ')
+                        ArrofPlay = evolve(ArrOfPlay, isComment)
+                        
+                        
+                except:
+                    ArrOfPlay = evolve(ArrOfPlay, isComment)
+            else:
+                print('Make sure to make the number of players wanted an even number!')
 
         elif inp[0] == 'list':
             listPlayers(ArrOfPlay)
@@ -625,20 +673,45 @@ def main():
         elif inp[0] == 'stats':
             getStats(ArrOfPlay)
 
+        elif inparr in names.keys() or inparr in names.values():
+            for player in ArrOfPlay:
+                if inparr == player.firstName or inparr == player.lastName:
+                    player.toString()
+
+        elif inp[0] == 'kill':
+            try:
+                minKill = int(inp[1])
+            except:
+                minKill = 1
+
+                for player in ArrOfPlay:
+                    if player.kills >= minKill:
+                        player.toString()
+
         elif inp[0] == 'new':
             try:
-                if int(inp[1])%2 == 0:
-                    ArrOfPlay = getPlayers(int(inp[1]), [])
-                    print('New Fighters have joined the arena!')
+                ArrOfPlay = getPlayers(int(inp[1]), [])
+                print('New Fighters have entered the arena!')
             except:
-                print('Make sure to make the number of players wanted an even number!')
+                print('Make sure to state how many players you want to enter the Arena!')
+
+        elif inp[0] == 'add':
+            try:
+                ArrOfPlay = getPlayers(int(inp[1]), ArrOfPlay)
+                print('New Fighters have joined the arena!')
+            except:
+                print('Make sure to specify how many fighters you want to join the Arena!')
+
+        elif inp[0] == 'create':
+            ArrOfPlay.append(createPlayer())
+                
 
         elif inp[0] == 'sample':
             ArrOfPlay[random.randint(0,len(ArrOfPlay) - 1)].toString()
 
         elif inp[0] == 'help':
             print('Accepted Commands:\n' +
-                  'step #,\nlist,\nnew #,\ntournament,\nexit\n')
+                  'step #,\nlist,\nnew #,\nadd #,\ncreate,\nsample,\ntournament,\nexit\n')
         elif inp[0][0:3] == 'tou':
             ArrOfPlay = EnterTournament(ArrOfPlay)
             
