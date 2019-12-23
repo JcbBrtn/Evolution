@@ -14,7 +14,7 @@ FIRST_NAMES = ['Eilaga','Prukain','Krusk','Devis','Jozan','Gimble','Eberk','Vada
                'Ragdar','Dian','Nese','Mae','Valhein','Dol','Earl','Cedria','Azulei','Yun','Cybel',
                'Donnie', 'Parker', 'Motley', 'Edward', 'Brick','Cumulous','Jacob','Bailey','Brock',
                'Caleb','Cathrine','Alexander','Alexandra','Anthony','Blaze','Gordon','Henry','Flexo',
-               'Fry', 'Zach', 'Jeff', 'Geoff']
+               'Fry', 'Zach', 'Jeff', 'Geoff','Miles','Baker', 'Austin']
 
 LAST_NAMES = ['Woodsoul','Carter','Licktenstein','Barton','Grimm','Ozul','Arkalis','Armanci','Baldric',
               'Ballard','Bilger','Blackstrand','Brightwater','Carnavon','Coldshore','Coyle','Cresthill',
@@ -39,7 +39,7 @@ GENERATION_NUMBER = 0
 class Player:
 
     def __init__(self, kind, race, lastName):
-        self.movement = 25
+        self.speed = self.movement = 25
         self.firstName = random.choice(FIRST_NAMES)
         self.kind = kind
         self.race = race
@@ -48,11 +48,12 @@ class Player:
         self.lastName = lastName
         self.isDead = False
         self.isPrepared = False
+        self.isPlayable = False
         self.attack = random.randint(-4, 5) + self.add(kind, 0)
         self.defense = random.randint(1, 15) + self.add(kind, 1)
         self.damage = random.randint(-4, 5) + self.add(kind, 2)
         #self.health = random.randint(20, 28) + self.add(kind, 3)
-        self.health = 3
+        self.health = random.randint(1, 8)
         self.maxHealth = self.health
         self.generation = GENERATION_NUMBER
         self.children = []
@@ -65,7 +66,6 @@ class Player:
         self.X = 0
         self.Y = 0
         self.Memory = [0,0,0,0,0,0]
-        self.speed = 25
 
         self.kills = 0
         self.damageDone = 0
@@ -92,46 +92,63 @@ class Player:
     The first 4 inputs are the memory of the previous output
 
     Outputs are as follows:
-        0)Move in the x Coordinate
-        1)Move in the y Coordinate
-        2)Attempt an attack
-        3)Pepare yourself
+        0)Move Up
+        1)Move Down
+        2)Move Left
+        3)Move Right
+        4)Attempt an attack
+        5)Pepare yourself
         """
 
         if self.isPrepared:
             prep = 1
         else:
             prep = 0
-        self.NN.run([prep ,self.X, self.Y, oppX, oppY, self.range, self.minRange])
-        self.Memory = self.NN.getOutput()
 
+        self.NN.run([prep ,self.X, self.Y, oppX, oppY, self.range, self.minRange])
+        
+        if self.isPlayable:
+            print('The following is the inputs to the neural network:')
+            print('isPrepared:'+ str(prep))
+            print('Self X:'+ str(self.X))
+            print('Self Y:'+ str(self.Y))
+            print('Opponent X:'+ str(oppX))
+            print('Opponent Y:'+ str(oppY))
+            print('Max Range:'+ str(self.range))
+            print('Min Range:'+ str(self.minRange))
+            print('\n\nPlease enter the desired outputs (ranges from 0.0 - 1.0):')
+            up = float(input('Move Up --> '))
+            down = float(input('Move Down --> '))
+            left = float(input('Move Left --> '))
+            right = float(input('Move Right --> '))
+            attack = float(input('Attack --> '))
+            prepare = float(input('Prepare --> '))
+            desiredArr = [up,down,left,right,attack,prepare]
+            self.NN.backprop(desiredArr)
+            maxWeight = -1000.0
+            maxNum = 0
+            for count, weight in enumerate(desiredArr):
+                if maxWeight < weight:
+                    maxNum = count
+                    maxWeight = weight
+                
         #Find most activated neuron
         #Take off 10% for each time an action is used
-        maxWeight = -1000.0
-        maxNum = 0
-        for count, weight in enumerate(self.NN.getOutput()):
-            #Subtract action Penalty from each weight
-            weight += -1 * self.actionPenaltyArr[count]
+        else:
+            maxWeight = -1000.0
+            maxNum = 0
+            for count, weight in enumerate(self.NN.getOutput()):
+                #Subtract action Penalty from each weight
+                weight += -1 * self.actionPenaltyArr[count]
 
-            #Check for maxNum
-            if maxWeight < weight:
-                maxNum = count
-                maxWeight = weight
+                #Check for maxNum
+                if maxWeight < weight:
+                    maxNum = count
+                    maxWeight = weight
 
-        #Add penalty to max num
-        self.actionPenaltyArr[maxNum] += .1
+            #Add penalty to max num
+            self.actionPenaltyArr[maxNum] += .1
 
-        """
-    TODO:
-        Change output to have 6 possible:
-            Move up
-            Move Down
-            Move Left
-            Move Right
-            Attack
-            Prepare
-        And have the activation be the scale factor of which the movement speed is determined by.
-        """
 
         if maxNum == 0:
             return 'Up'
@@ -402,6 +419,8 @@ def getPlayers(numOfPlayers, arrOfPlay):
 def Battle(player1, player2, isComment):
     #Battle is same as fight command, just refactored to be cleaner, and adds the Neural Network
     #Runs through the figth array of 2 players and Has them fight till timer runs out or someone dies.
+    if player1.isPlayable or player2.isPlayable:
+        isComment = True
     player1.isComment = isComment
     player2.isComment = isComment
     player1.reset()
@@ -436,15 +455,27 @@ def Battle(player1, player2, isComment):
         for i in range(len(fightArr)):
             action = fightArr[i].getAction(fightArr[i-1].X, fightArr[i-1].Y)
             if action == 'Up':
+                if isComment:
+                    fightArr[i].SysOut()
+                    print('Moves up!')
                 fightArr[i].turnsMoving += 1
                 fightArr[i].Y += fightArr[i].getMove(fightArr[i].NN.weights[3][0], False)
             elif action =='Down':
+                if isComment:
+                    fightArr[i].SysOut()
+                    print('Moves down!')
                 fightArr[i].turnsMoving += 1
                 fightArr[i].Y += fightArr[i].getMove(fightArr[i].NN.weights[3][1], True)
             elif action =='Left':
+                if isComment:
+                    fightArr[i].SysOut()
+                    print('Moves left!')
                 fightArr[i].turnsMoving += 1
                 fightArr[i].X += fightArr[i].getMove(fightArr[i].NN.weights[3][2], True)
             elif action =='Right':
+                if isComment:
+                    fightArr[i].SysOut()
+                    print('Moves right!')
                 fightArr[i].turnsMoving += 1
                 fightArr[i].X +=fightArr[i].getMove(fightArr[i].NN.weights[3][3], False)
                 
@@ -461,7 +492,12 @@ def Battle(player1, player2, isComment):
                         player1.reset()
                         return player1
                 else:
+                    if isComment:
+                        print('They miss the attack!')
                     if fightArr[i-1].isPrepared and fightArr[i-1].getAttack(fightArr[i].X, fightArr[i].Y, fightArr[i].defense):
+                        if isComment:
+                            fightArr[i-1].SysOut()
+                            print('Counter Attacks and attacks!')
                         fightArr[i].setHealth(fightArr[i-1].getDamage())
                         if player1.isDead:
                             player2.kills += 1
@@ -474,6 +510,9 @@ def Battle(player1, player2, isComment):
                     fightArr[i-1].isPrepared = False
                     
             elif action =='Prepare':
+                if isComment:
+                    fightArr[i].SysOut()
+                    print('Prepares themselves!')
                 fightArr[i].isPrepared = True
                 fightArr[i].turnsPreparing += 1
             else:
@@ -481,6 +520,9 @@ def Battle(player1, player2, isComment):
                 fightArr[i].turnsStanding += 1
                 if isComment:
                     print('They just stand there silly.')
+
+        if isComment:
+            print('\n')
         counter += 1
         #End of While Loop
 
@@ -498,10 +540,9 @@ def Battle(player1, player2, isComment):
             
             
 def listPlayers(Arr):
-    names = {}
-    for player in Arr:
+    for count, player in enumerate(Arr):
+        print(str(count + 1) + ')', end = '' )
         player.SysOut()
-        names.setdefault(player.firstName, player.lastName)
         print('')
     print('\nThere are ' + str(len(Arr)) + ' players!\n')
                 
@@ -625,6 +666,7 @@ def createPlayer():
         player.damage = int(input('\nDamage Bonus? -->'))
         player.health = int(input('\nMax Health? -->'))
         player.speed = int(input('\nMax Move Distance? -->'))
+        player.isPlayable = bool(input('\nIs the character playable? (True/False) -->'))
         return player
     except:
         print('Error entering player info. A random Player has been made to enter the Arena.')
@@ -636,12 +678,22 @@ def main():
     ArrOfPlay = getPlayers(FIGHTER_NUMBER, [])
     names = {}
     isComment = False
+    selectedPlayers = []
     for player in ArrOfPlay:
-        names.setdefault(player.firstName, player.lastName)
+        names.setdefault(player.firstName.lower(), player.lastName.lower())
     while True:
         inparr = input('\nWhat do you want to do?\n-->')
         inp = inparr.split(' ')
+        
         if inp[0] == 'step':
+            """
+            Begins the evolutionary process.
+            All of the fighters battle, the ones that survive reproduce to repopulate the array.
+            The reproductions have small mutations. This keeps happening until optimization.
+
+            NEW: You are now able to play as a fighter and teach the fighter to fight properly through backPropagation!
+            """
+            selectedPlayers = []
             if len(ArrOfPlay)%2 == 0:
                 try:
                     steps = int(inp[1])
@@ -668,27 +720,27 @@ def main():
                 print('Make sure to make the number of players wanted an even number!')
 
         elif inp[0] == 'list':
+            #List all players in Array of Players
             listPlayers(ArrOfPlay)
 
         elif inp[0] == 'stats':
+            #Shows stats of all players
             getStats(ArrOfPlay)
 
-        elif inparr in names.keys() or inparr in names.values():
+        elif inparr.lower() in names.keys() or inparr.lower() in names.values():
+            #Prints players being selected
             for player in ArrOfPlay:
-                if inparr == player.firstName or inparr == player.lastName:
+                if inparr.lower() == player.firstName.lower() or inparr.lower() == player.lastName.lower():
                     player.toString()
+                    selectedPlayers.append(player)
 
-        elif inp[0] == 'kill':
-            try:
-                minKill = int(inp[1])
-            except:
-                minKill = 1
-
-                for player in ArrOfPlay:
-                    if player.kills >= minKill:
-                        player.toString()
+        elif inp[0] in ['kill', 'delete']:
+            #removes a player from the list
+            #TODO: write this method
+            continue
 
         elif inp[0] == 'new':
+            #Creates a new group of players
             try:
                 ArrOfPlay = getPlayers(int(inp[1]), [])
                 print('New Fighters have entered the arena!')
@@ -696,6 +748,7 @@ def main():
                 print('Make sure to state how many players you want to enter the Arena!')
 
         elif inp[0] == 'add':
+            #Adds on new players to the preexisting Array of players
             try:
                 ArrOfPlay = getPlayers(int(inp[1]), ArrOfPlay)
                 print('New Fighters have joined the arena!')
@@ -703,21 +756,167 @@ def main():
                 print('Make sure to specify how many fighters you want to join the Arena!')
 
         elif inp[0] == 'create':
+            #Creates a new player to add to the group
             ArrOfPlay.append(createPlayer())
                 
 
         elif inp[0] == 'sample':
+            #Prints a random sample of the array of players
             ArrOfPlay[random.randint(0,len(ArrOfPlay) - 1)].toString()
 
         elif inp[0] == 'help':
+            #prints all valid commands:
+            #TODO make this more helpful
             print('Accepted Commands:\n' +
                   'step #,\nlist,\nnew #,\nadd #,\ncreate,\nsample,\ntournament,\nexit\n')
         elif inp[0][0:3] == 'tou':
+            #Enters a tournament to decided who the ultimate fighter really is
             ArrOfPlay = EnterTournament(ArrOfPlay)
+
+        elif inp[0].lower()[0:6] == 'select':
+            #print selected list
+            #change selection
+            #change values of all players in the selected list
+            selectedNames = {}
+            for player in selectedPlayers:
+                selectedNames.setdefault(player.firstName.lower(), player.lastName.lower())
+            try:
+                try:
+                    #Single out selected player in selectedPlayer array
+                    arrNum = int(inp[1]) - 1
+                    if arrNum <= 0:
+                        continue
+                    else:
+                        selectPlay = selectedPlayer[arrNum]
+                        selectedPlayers.clear()
+                        selectedPlayers.append(selectPlay)
+
+                except:
+                    #change or print stat of all selected players
+                    stat = str(inp[1]).lower()
+
+                    if stat == 'clear':
+                        selectedPlayers = []
+                            
+                        continue
+
+                    elif stat in ['playable','isplayable']:
+                            for player in selectedPlayers:
+                                if player.isPlayable:
+                                    player.isPlayable = False
+                                else:
+                                    player.isPlayable = True
+
+                    elif stat == 'all':
+                        selectedPlayers = ArrOfPlay
+                    
+                    else:
+                        try:
+                            statNum = int(inp[2])
+                            if stat in ['movement','speed']:
+                                for player in selectedPlayers:
+                                    player.speed = statNum
+
+                            elif stat == 'range':
+                                for player in ArrOfPlay:
+                                    if player in selectedPlayers:
+                                        player.range = statNum
+                                    
+                            elif stat == 'minrange':
+                                for player in ArrOfPlay:
+                                    if player in selectedPlayers:
+                                        player.minRange = statNum
+                                    
+                            elif stat == 'attack':
+                                for player in ArrOfPlay:
+                                    if player in selectedPlayers:
+                                        player.attack = statNum
+                                    
+                            elif stat == 'defense':
+                                for player in ArrOfPlay:
+                                    if player in selectedPlayers:
+                                        player.defense = statNum
+                    
+                            elif stat == 'damage':
+                                for player in ArrOfPlay:
+                                    if player in selectedPlayers:
+                                        player.damage = statNum
+                                    
+                            elif stat == 'health':
+                                for player in ArrOfPlay:
+                                    if player in selectedPlayers:
+                                        player.health = statNum
+                                    
+                            elif stat == 'initative':
+                                for player in ArrOfPlay:
+                                    if player in selectedPlayers:
+                                        player.initative = statNum
+                                    
+                                    
+                        except:
+                            #Print the given stats of the selecetd players
+                            if stat == 'movement':
+                                for player in selectedPlayers:
+                                    player.SysOut()
+                                    print( str(stat) + ' --> ' + str(player.movement))
+
+                            elif stat == 'range':
+                                for player in selectedPlayers:
+                                    player.SysOut()
+                                    print( str(stat) + ' --> ' + str(player.range))
+                                    
+                            elif stat == 'minrange':
+                                for player in selectedPlayers:
+                                    player.SysOut()
+                                    print( str(stat) + ' --> ' + str(player.minRange))
+                                    
+                            elif stat == 'attack':
+                                for player in selectedPlayers:
+                                    player.SysOut()
+                                    print( str(stat) + ' --> ' + str(player.attack))
+                                    
+                            elif stat == 'defense':
+                                for player in selectedPlayers:
+                                    player.SysOut()
+                                    print( str(stat) + ' --> ' + str(player.defense))
+                    
+                            elif stat == 'damage':
+                                for player in selectedPlayers:
+                                    player.SysOut()
+                                    print( str(stat) + ' --> ' + str(player.damage))
+                                    
+                            elif stat == 'health':
+                                for player in selectedPlayers:
+                                    player.SysOut()
+                                    print( str(stat) + ' --> ' + str(player.maxHealth))
+                                    
+                            elif stat == 'initative':
+                                for player in selectedPlayers:
+                                    player.SysOut()
+                                    print( str(stat) + ' --> ' + str(player.initative))
+                                    
+                    
+            except:
+                #Print selected players
+                listPlayers(selectedPlayers)
             
         elif inp[0] == 'exit':
+            #Closes the program
             print('Goodbye')
             break
+        
+        else:
+            #Prints the player by the number they are in the list
+            try:
+                listNum = int(inp[0]) - 1
+                if listNum <= 0:
+                    continue
+                else:
+                    ArrOfPlay[listNum].toString()
+                    selectedPlayers.append(ArrOfPlay[listNum])
+            except:
+                continue
+                
         
 if __name__ == '__main__':        
     warnings.simplefilter("ignore")   

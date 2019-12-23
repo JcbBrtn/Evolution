@@ -6,9 +6,9 @@ import numpy as np
 Neural network class:
 
 TODO List:
-    Add biases into each neuron before sent into activation function
-    Add back prop
-    Play around with mutating learning rate
+    Add biases into each neuron before sent into activation function [X]
+    Add back prop [X]
+    Play around with mutating learning rate [X]
 """
 
 class neuralNetwork:
@@ -21,10 +21,12 @@ class neuralNetwork:
         self.masses = []
         self.biases = []
         #weights are the multiplied and summed inputs along each layer
-        self.weights = []
+        self.primers = []
+        self.weights = [] #Activation of each neuron
         #Learning rate in this case is the highest percentage a mass can change during mutation
         #This will remain constant through families
-        self.learningRate = random.random()
+        self.learningRate = 0.5
+        self.delta = []
         """
     Masses are to be initilized as such:
 
@@ -51,7 +53,7 @@ class neuralNetwork:
         elif layer == 1:
             comeFrom = goTo = 3
         else:
-            comeFrom = 10
+            comeFrom = 3
             goTo = self.out
         massGoTo = []
         for y in range(goTo):
@@ -64,7 +66,7 @@ class neuralNetwork:
     def fillBiases(self):
         for layers in range(2):
             biases = []
-            for bias in range(10):
+            for bias in range(3):
                 biases.append(random.randint(-20, 20))
             self.biases.append(biases)
         biases = []
@@ -78,18 +80,35 @@ class neuralNetwork:
         self.weights.append(inpArr)
         for mx, wx, bx in zip(self.masses, self.weights, self.biases):
             weight = []
+            primer = []
             for my, by in zip(mx, bx):
                 total = by
                 for mz, wy in zip(my, wx):
                     total += (mz*wy)
+                primer.append(total)
                 weight.append(self.sigmoid(total))
+            self.primers.append(primer)
             self.weights.append(weight)
             
     def sigmoid(self, x):
         return round((1/(1+ np.exp(-1*x))), 4)
 
+    def sigmoidPrime(self, x):
+        return self.sigmoid(x) * (1 - self.sigmoid(x))
+
+    def costDerivative(self, outA, desired):
+        return (outA - desired)
+
     def getOutput(self):
         return self.weights[3]
+
+    """
+    Now are the Optimization Functions.
+    First is mutation which is mainly used int he evolutionary arena.
+
+    Second is BackPropagation which is used when controlling the fighters
+    This is so they learn from your actions.
+"""
 
     def mutate(self):
         #Create a child for the Neural Network and bump masses around 
@@ -113,3 +132,56 @@ class neuralNetwork:
                 child.biases[bx][by] += mutationRate
 
         return child
+
+    def backprop(self, desiredArr):
+        #uses the desired output array to apply gradient descent to the masses and biases
+        nabla = self.biases
+
+        """
+        Little bit of debugging code.
+        print('\nnabla')
+        print(nabla)
+        print('\ndesired')
+        print(desiredArr)
+        print('\nPrimers')
+        print(self.primers)
+        print('\nweights')
+        print(self.weights)
+        """
+        #find nabla for the output layer
+        for x in range(1, len(nabla) + 1):
+            for d in range(len(nabla[-x])):
+                if x == 1:
+                    nabla[-x][d] = (desiredArr[d] - self.weights[-x][d]) * self.sigmoidPrime(self.primers[-x][d])
+                else:
+                    #Calculate sum of masses
+                    #keep z constant; change y
+                    delta = 0
+                    for z in range(len(self.masses[-x + 1])):
+                        for y in range(len(self.masses[-x + 1][z])):
+                            delta += self.masses[-x + 1][z][y] * nabla[-x + 1][z]
+
+                    
+                    nabla[-x][d] = delta * self.sigmoidPrime(self.primers[-x][d])
+        #update masses by finding (average of nabla * activations) * learning rate
+        #update biases by finding (average of nabla) * learning rate
+        for x in range(1, len(nabla) + 1):
+            totalAndWeight = total = 0
+            for y in range(len(nabla[-x])):
+                total += nabla[-x][y]
+                totalAndWeight += nabla[-x][y] * self.weights[-x][y]
+            avgBias = (total / len(nabla[-x])) * self.learningRate
+            avgMass = (totalAndWeight / len(nabla[-x])) * self.learningRate
+
+            #With change found, update ALL masses in that layer
+            for y in range(len(self.masses[-x])):
+                for z in range(len(self.masses[-x][y])):
+                    self.masses[-x][y][z] -= avgMass
+            #With change found, update biases
+            for y in range(len(self.biases[-x])):
+                self.biases[-x][y] -= avgBias
+
+        return #End of Backprop()
+                                                             
+
+            
