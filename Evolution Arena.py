@@ -14,7 +14,7 @@ FIRST_NAMES = ['Eilaga','Prukain','Krusk','Devis','Jozan','Gimble','Eberk','Vada
                'Ragdar','Dian','Nese','Mae','Valhein','Dol','Earl','Cedria','Azulei','Yun','Cybel',
                'Donnie', 'Parker', 'Motley', 'Edward', 'Brick','Cumulous','Jacob','Bailey','Brock',
                'Caleb','Cathrine','Alexander','Alexandra','Anthony','Blaze','Gordon','Henry','Flexo',
-               'Fry', 'Zach', 'Jeff', 'Geoff','Miles','Baker', 'Austin']
+               'Fry', 'Zach', 'Jeff', 'Geoff','Miles','Baker', 'Austin', 'Man','Alexis']
 
 LAST_NAMES = ['Woodsoul','Carter','Licktenstein','Barton','Grimm','Ozul','Arkalis','Armanci','Baldric',
               'Ballard','Bilger','Blackstrand','Brightwater','Carnavon','Coldshore','Coyle','Cresthill',
@@ -28,8 +28,7 @@ LAST_NAMES = ['Woodsoul','Carter','Licktenstein','Barton','Grimm','Ozul','Arkali
               'Mercury','Venus','Dirt','Flanders','Cruise','Saturn','Mars','Solar','Lunar','Celestial',
               'Jupiter','Uranas','Neptune','Pluto','Mouse','Kernal','Dink','Schoth','\'Aliah','Mcnaught',
               'McNeel','McPhereson','Skaggs','Scgoth','Heille','Hominer','Of the Night','The Brave',
-              'The Mildly Brave','of War','of Camelot','of The Round Table',
-              'Olip','Cameniele']
+              'The Mildly Brave','of War','of Camelot','of The Round Table', 'Olip','Cameniele','Texas']
 
 FIGHTER_NUMBER = 50
 
@@ -81,15 +80,13 @@ class Player:
         """
     Get 8 inputs and run them through the neural network, and make Move based on highest output.
     Inputs are as follows:
-        0)Move in x coord activation
-        1)Move in y Coord activation
-        2)Attempt attack activation
-        3)Prepare activation
-        4)Self X coord
-        5)Self y Coord
-        6)Opponent x Coord
-        7)Opponent y Coord
-    The first 4 inputs are the memory of the previous output
+        0) isPrepared
+        1) self x
+        2) self y
+        3) opponent X
+        4) opponent T
+        5) range max
+        6) range min
 
     Outputs are as follows:
         0)Move Up
@@ -108,7 +105,8 @@ class Player:
         self.NN.run([prep ,self.X, self.Y, oppX, oppY, self.range, self.minRange])
         
         if self.isPlayable:
-            print('The following is the inputs to the neural network:')
+            print('It is your turn!')
+            print('The following are the inputs given to each player:')
             print('isPrepared:'+ str(prep))
             print('Self X:'+ str(self.X))
             print('Self Y:'+ str(self.Y))
@@ -117,14 +115,18 @@ class Player:
             print('Max Range:'+ str(self.range))
             print('Min Range:'+ str(self.minRange))
             print('\n\nPlease enter the desired outputs (ranges from 0.0 - 1.0):')
-            up = float(input('Move Up --> '))
-            down = float(input('Move Down --> '))
-            left = float(input('Move Left --> '))
-            right = float(input('Move Right --> '))
-            attack = float(input('Attack --> '))
-            prepare = float(input('Prepare --> '))
-            desiredArr = [up,down,left,right,attack,prepare]
+            try:
+                up = float(input('Move Up --> '))
+                down = float(input('Move Down --> '))
+                left = float(input('Move Left --> '))
+                right = float(input('Move Right --> '))
+                attack = float(input('Attack --> '))
+                prepare = float(input('Prepare --> '))
+                desiredArr = [up,down,left,right,attack,prepare]
+            except:
+                desiredArr = [random.random(), random.random(),random.random(),random.random(),random.random(),random.random()]
             self.NN.backprop(desiredArr)
+            self.NN.weights[-1] = desiredArr
             maxWeight = -1000.0
             maxNum = 0
             for count, weight in enumerate(desiredArr):
@@ -411,7 +413,7 @@ Three Kinds of Mutations can occur
 
     
 def getPlayers(numOfPlayers, arrOfPlay):
-    for i in range(len(arrOfPlay), numOfPlayers):
+    for i in range(numOfPlayers):
         arrOfPlay.append(Player(random.choice(list(CLASSES.keys())), random.choice(list(RACES.keys())),random.choice(list(LAST_NAMES))))
     return arrOfPlay
 
@@ -437,17 +439,17 @@ def Battle(player1, player2, isComment):
         fightArr.append(player1)
         fightArr.append(player2)
         player1.X = -25
-        player1.Y = 0
+        player1.Y = -25
         player2.X = 25
-        player2.Y = 0
+        player2.Y = 25
     else:
         player2.goesFirst = True
         fightArr.append(player2)
         fightArr.append(player1)
         player2.X = -25
-        player2.Y = 0
+        player2.Y = -25
         player1.X = 25
-        player1.Y = 0
+        player1.Y = 25
     counter = 0
     
 
@@ -455,29 +457,36 @@ def Battle(player1, player2, isComment):
         for i in range(len(fightArr)):
             action = fightArr[i].getAction(fightArr[i-1].X, fightArr[i-1].Y)
             if action == 'Up':
+                fightArr[i].turnsMoving += 1
+                distance = fightArr[i].getMove(fightArr[i].NN.weights[-1][0], False)
+                fightArr[i].Y += distance
                 if isComment:
                     fightArr[i].SysOut()
-                    print('Moves up!')
-                fightArr[i].turnsMoving += 1
-                fightArr[i].Y += fightArr[i].getMove(fightArr[i].NN.weights[3][0], False)
+                    print('Moves up ' + str(abs(distance)) + ' feet!\n')
+                
             elif action =='Down':
+                fightArr[i].turnsMoving += 1
+                distance = fightArr[i].getMove(fightArr[i].NN.weights[-1][1], True)
+                fightArr[i].Y += distance
                 if isComment:
                     fightArr[i].SysOut()
-                    print('Moves down!')
-                fightArr[i].turnsMoving += 1
-                fightArr[i].Y += fightArr[i].getMove(fightArr[i].NN.weights[3][1], True)
+                    print('Moves down ' + str(abs(distance)) + ' feet!\n')
+                    
             elif action =='Left':
+                fightArr[i].turnsMoving += 1
+                distance = fightArr[i].getMove(fightArr[i].NN.weights[-1][2], True)
+                fightArr[i].X += distance
                 if isComment:
                     fightArr[i].SysOut()
-                    print('Moves left!')
-                fightArr[i].turnsMoving += 1
-                fightArr[i].X += fightArr[i].getMove(fightArr[i].NN.weights[3][2], True)
+                    print('Moves left ' + str(abs(distance)) + ' feet!\n')
+                    
             elif action =='Right':
+                fightArr[i].turnsMoving += 1
+                distance = fightArr[i].getMove(fightArr[i].NN.weights[-1][3], False)
+                fightArr[i].X += distance
                 if isComment:
                     fightArr[i].SysOut()
-                    print('Moves right!')
-                fightArr[i].turnsMoving += 1
-                fightArr[i].X +=fightArr[i].getMove(fightArr[i].NN.weights[3][3], False)
+                    print('Moves right ' + str(abs(distance)) + ' feet!\n')
                 
             elif action =='Attack':
                 fightArr[i].attacksTried += 1
@@ -731,9 +740,11 @@ def main():
             #Prints players being selected
             for player in ArrOfPlay:
                 if inparr.lower() == player.firstName.lower() or inparr.lower() == player.lastName.lower():
+                    player.SysOut()
+                    print('was added to Selected.\n')
                     player.toString()
                     selectedPlayers.append(player)
-
+        
         elif inp[0] in ['kill', 'delete']:
             #removes a player from the list
             #TODO: write this method
@@ -784,7 +795,7 @@ def main():
                 try:
                     #Single out selected player in selectedPlayer array
                     arrNum = int(inp[1]) - 1
-                    if arrNum <= 0:
+                    if arrNum < 0:
                         continue
                     else:
                         selectPlay = selectedPlayer[arrNum]
@@ -804,8 +815,12 @@ def main():
                             for player in selectedPlayers:
                                 if player.isPlayable:
                                     player.isPlayable = False
+                                    player.SysOut()
+                                    print('is no longer Playable.')
                                 else:
                                     player.isPlayable = True
+                                    player.SysOut()
+                                    print('is now a Playable Character!')
 
                     elif stat == 'all':
                         selectedPlayers = ArrOfPlay
@@ -909,9 +924,11 @@ def main():
             #Prints the player by the number they are in the list
             try:
                 listNum = int(inp[0]) - 1
-                if listNum <= 0:
+                if listNum < 0:
                     continue
                 else:
+                    ArrOfPlay[listNum].SysOut()
+                    print('was added to Selected.\n')
                     ArrOfPlay[listNum].toString()
                     selectedPlayers.append(ArrOfPlay[listNum])
             except:

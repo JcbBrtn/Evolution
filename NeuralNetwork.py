@@ -25,7 +25,7 @@ class neuralNetwork:
         self.weights = [] #Activation of each neuron
         #Learning rate in this case is the highest percentage a mass can change during mutation
         #This will remain constant through families
-        self.learningRate = 0.5
+        self.learningRate = 0.2
         self.delta = []
         """
     Masses are to be initilized as such:
@@ -59,7 +59,7 @@ class neuralNetwork:
         for y in range(goTo):
             massCome = []
             for z in range(comeFrom):
-                massCome.append(random.uniform(-10,10))
+                massCome.append(random.uniform(-1,1))
             massGoTo.append(massCome)
         self.masses.append(massGoTo)
 
@@ -67,23 +67,24 @@ class neuralNetwork:
         for layers in range(2):
             biases = []
             for bias in range(3):
-                biases.append(random.randint(-20, 20))
+                biases.append(random.uniform(-1,1))
             self.biases.append(biases)
         biases = []
         for i in range(self.out):
-            biases.append(random.randint(-20,20))
+            biases.append(random.uniform(-1,1))
         self.biases.append(biases)
 
     def run(self, inpArr):
         #Sums product of weights and masses through the Neural Network
-
+        self.weights = []
+        self.primers = []
         self.weights.append(inpArr)
-        for mx, wx, bx in zip(self.masses, self.weights, self.biases):
+        for x in range(len(self.masses)):
             weight = []
             primer = []
-            for my, by in zip(mx, bx):
+            for my, by in zip(self.masses[x], self.biases[x]):
                 total = by
-                for mz, wy in zip(my, wx):
+                for mz, wy in zip(my, self.weights[x]):
                     total += (mz*wy)
                 primer.append(total)
                 weight.append(self.sigmoid(total))
@@ -91,7 +92,7 @@ class neuralNetwork:
             self.weights.append(weight)
             
     def sigmoid(self, x):
-        return round((1/(1+ np.exp(-1*x))), 4)
+        return (1/(1+ np.exp(-1*x)))
 
     def sigmoidPrime(self, x):
         return self.sigmoid(x) * (1 - self.sigmoid(x))
@@ -99,8 +100,27 @@ class neuralNetwork:
     def costDerivative(self, outA, desired):
         return (outA - desired)
 
+    def getCost(self, desiredArr):
+        cost = []
+        total = 0
+        for y, yPrime in zip(desiredArr, self.getOutput()):
+            cost.append(0.5*(y - yPrime)**2)
+        for c in cost:
+            total += c
+        return total
+            
+
     def getOutput(self):
-        return self.weights[3]
+        return self.weights[-1]
+
+    def toString(self):
+        print('\nPrimers')
+        print(self.primers)
+        print('\nweights')
+        print(self.weights)
+        print('\nBiases')
+        print(self.biases)
+        print('\n')
 
     """
     Now are the Optimization Functions.
@@ -133,55 +153,65 @@ class neuralNetwork:
 
         return child
 
+    def getMassTotal(self, layer, goTo):
+        massTotal = 0
+        for m in self.masses[layer - 1][goTo]:
+            massTotal += m
+        return massTotal
+
+
+    def getError(self, error, x, comeFrom):
+        errorTotal = 0
+        massT = np.transpose(self.masses[-x + 1])
+        massTotal = 0
+        for goTo in range(len(error[-x + 1])):
+            massTotal = 0
+            #for each neuron connected to the one we're looking at:
+            #calc massTotal connected to that neuron
+            for z in range(len(self.masses[-x + 1][goTo])):
+                massTotal += self.masses[-x + 1][goTo][z]
+
+            #then add error proportional to the mass percentage by the error
+            errorTotal += ((massT[comeFrom][goTo] * error[-x+1][z]) / float(massTotal))
+            
+        return errorTotal
+
     def backprop(self, desiredArr):
         #uses the desired output array to apply gradient descent to the masses and biases
-        nabla = self.biases
+        error = []
+        for x in range(len(self.biases)):
+            errorx = []
+            for y in range(len(self.biases[x])):
+                errorx.append(0)
+            error.append(errorx)
 
-        """
-        Little bit of debugging code.
-        print('\nnabla')
-        print(nabla)
-        print('\ndesired')
-        print(desiredArr)
-        print('\nPrimers')
-        print(self.primers)
-        print('\nweights')
-        print(self.weights)
-        """
-        #find nabla for the output layer
-        for x in range(1, len(nabla) + 1):
-            for d in range(len(nabla[-x])):
-                if x == 1:
-                    nabla[-x][d] = (desiredArr[d] - self.weights[-x][d]) * self.sigmoidPrime(self.primers[-x][d])
-                else:
-                    #Calculate sum of masses
-                    #keep z constant; change y
-                    delta = 0
-                    for z in range(len(self.masses[-x + 1])):
-                        for y in range(len(self.masses[-x + 1][z])):
-                            delta += self.masses[-x + 1][z][y] * nabla[-x + 1][z]
+        #find error for the first layer
+        for y in range(len(error[-1])):
+            error[-1][y] = desiredArr[y] - self.weights[-1][y]
 
-                    
-                    nabla[-x][d] = delta * self.sigmoidPrime(self.primers[-x][d])
-        #update masses by finding (average of nabla * activations) * learning rate
-        #update biases by finding (average of nabla) * learning rate
-        for x in range(1, len(nabla) + 1):
-            totalAndWeight = total = 0
-            for y in range(len(nabla[-x])):
-                total += nabla[-x][y]
-                totalAndWeight += nabla[-x][y] * self.weights[-x][y]
-            avgBias = (total / len(nabla[-x])) * self.learningRate
-            avgMass = (totalAndWeight / len(nabla[-x])) * self.learningRate
+        #Find error for all the other layers
+        for x in range(2, len(error) + 1):
+            for y in range(len(error)):
+                error[-x][y] = self.getError(error, x, y)
 
-            #With change found, update ALL masses in that layer
-            for y in range(len(self.masses[-x])):
-                for z in range(len(self.masses[-x][y])):
-                    self.masses[-x][y][z] -= avgMass
-            #With change found, update biases
-            for y in range(len(self.biases[-x])):
-                self.biases[-x][y] -= avgBias
+        #Update all masses
+        for x in range(len(self.masses)):
+            for y in range(len(self.masses[x])):
+                for z in range(len(self.masses[x][y])):
+                    self.masses[x][y][z] += error[x][z] * self.learningRate / self.getMassTotal(y, z)
+        #Update all Biases
+            self.biases[x][y] += error[x][y] * self.learningRate
 
         return #End of Backprop()
-                                                             
 
-            
+myNN = neuralNetwork(2, 4)
+myNN.run([0.5,0.33333])
+print('Cost, Output')
+print(myNN.getCost([0.25, 0.5, 0.75, 1.0]), myNN.getOutput())
+
+for i in range(10000):
+    myNN.run([0.5, 0.33333])    
+    myNN.backprop([0.25, 0.5, 0.75, 1.0])
+    
+print('Cost, Output')
+print( myNN.getCost([0.25,0.5,0.75, 1.0]), myNN.getOutput())
