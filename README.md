@@ -21,11 +21,8 @@ The UI is mainly test based. Use 'help' to get a list of all commands that can b
   'stats' shows all stats of current fighters in the arena (i.e. min, max, average)
   
   'tournament' Enters all fighters currently in the array into a tournament to decide which fighter is the strongest. You are unable to step after a tournament is ran until new fighters enter the arena.
-TODO:
-
-  Create custom fighters input.
-  Create proper UI using Pygame or some other UI module
-  Use backpropagation to train a neural network/fighter by trying to match the inuputs hand entered into the system. In other words, given inputs, hand enter the outputs it should have each turn. And as the fight continues on, the neural network is slowly trained to have the proper inputs it should have.
+  
+  'sample' gives a random sample fighter from the group of currently avaiable fighters.
   
   
 Happy Evolution!
